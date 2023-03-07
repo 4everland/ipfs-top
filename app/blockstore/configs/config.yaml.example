@@ -1,0 +1,12 @@
+server:
+  grpc:
+    addr: 0.0.0.0:9000
+    timeout: 1s
+data:
+  storage:
+    endpoint: ""
+    region: ""
+    bucket: "ipfs-blocks-xxxx"
+    accessKey: ""
+    secretKey: ""
+  leveldb: "./db"

@@ -1,0 +1,33 @@
+syntax = "proto3";
+package ipfs.blockstore.api;
+
+option go_package = "ipfs-servers/app/blockstore/conf;conf";
+
+import "google/protobuf/duration.proto";
+
+message Bootstrap {
+  Server server = 1;
+  Data data = 2;
+}
+
+message Server {
+  message GRPC {
+    string network = 1;
+    string addr = 2;
+    google.protobuf.Duration timeout = 3;
+  }
+  GRPC grpc = 1;
+}
+
+message Data {
+  message S3 {
+    string endpoint = 2;
+    string region = 3;
+    string bucket = 4;
+    string accessKey = 5;
+    string secretKey = 6;
+  }
+  S3 storage = 1;
+
+  string leveldb = 2;
+}

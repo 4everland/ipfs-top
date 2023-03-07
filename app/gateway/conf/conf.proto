@@ -1,0 +1,25 @@
+syntax = "proto3";
+package ipfs.gateway.conf;
+
+option go_package = "ipfs-servers/app/gateway/conf;conf";
+
+import "google/protobuf/duration.proto";
+
+message Bootstrap {
+  Server server = 1;
+  Data data = 2;
+}
+
+message Server {
+  message HTTP {
+    string addr = 1;
+    google.protobuf.Duration timeout = 2;
+  }
+  HTTP http = 1;
+
+}
+
+message Data {
+  string blockstore_uri = 1;
+}
+

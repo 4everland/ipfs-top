@@ -1,0 +1,6 @@
+server:
+  http:
+    addr: 0.0.0.0:8080
+    timeout: 20s
+data:
+  blockstore_uri: "127.0.0.1:9000"
