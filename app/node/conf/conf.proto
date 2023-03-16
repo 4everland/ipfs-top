@@ -1,5 +1,5 @@
 syntax = "proto3";
-package kratos.api;
+package ipfs.node.conf;
 
 option go_package = "ipfs-servers/app/node/conf;conf";
 

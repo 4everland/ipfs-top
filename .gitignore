@@ -41,4 +41,6 @@ app/*/configs/config.yaml
 .vscode/
 .idea/
 *.swp
+/app/node/cmd/datastore/
+/app/provide/cmd/datastore/
 

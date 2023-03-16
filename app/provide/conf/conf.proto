@@ -1,0 +1,28 @@
+syntax = "proto3";
+package ipfs.provide.conf;
+
+option go_package = "github.com/4everland/ipfs-servers/app/provide/conf;conf";
+
+import "google/protobuf/duration.proto";
+
+message Bootstrap {
+  Server server = 1;
+  Data data = 2;
+}
+
+message Server {
+  message GRPC {
+    string addr = 1;
+    google.protobuf.Duration timeout = 2;
+  }
+  GRPC grpc = 1;
+
+}
+
+message Data {
+  string blockstore_uri = 1;
+  string node_uri = 2;
+  string leveldb_path = 3;
+  int64 reprovider_interval = 4;
+}
+
