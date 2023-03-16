@@ -44,7 +44,7 @@ func NewContentRoutingClient(cc grpc.ClientConnInterface) ContentRoutingClient {
 
 func (c *contentRoutingClient) Provide(ctx context.Context, in *ProvideReq, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, "/api.ipfs.blockstore.ContentRouting/Provide", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/api.ipfs.content.routing.ContentRouting/Provide", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func (c *contentRoutingClient) Provide(ctx context.Context, in *ProvideReq, opts
 }
 
 func (c *contentRoutingClient) FindProvidersAsync(ctx context.Context, in *GetProvidersReq, opts ...grpc.CallOption) (ContentRouting_FindProvidersAsyncClient, error) {
-	stream, err := c.cc.NewStream(ctx, &ContentRouting_ServiceDesc.Streams[0], "/api.ipfs.blockstore.ContentRouting/FindProvidersAsync", opts...)
+	stream, err := c.cc.NewStream(ctx, &ContentRouting_ServiceDesc.Streams[0], "/api.ipfs.content.routing.ContentRouting/FindProvidersAsync", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +132,7 @@ func _ContentRouting_Provide_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/api.ipfs.blockstore.ContentRouting/Provide",
+		FullMethod: "/api.ipfs.content.routing.ContentRouting/Provide",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ContentRoutingServer).Provide(ctx, req.(*ProvideReq))
@@ -165,7 +165,7 @@ func (x *contentRoutingFindProvidersAsyncServer) Send(m *AddrInfo) error {
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var ContentRouting_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "api.ipfs.blockstore.ContentRouting",
+	ServiceName: "api.ipfs.content.routing.ContentRouting",
 	HandlerType: (*ContentRoutingServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

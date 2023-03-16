@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-package api.ipfs.blockstore;
+package api.ipfs.content.routing;
 
 import "google/protobuf/empty.proto";
 
-option go_package = "ipfs-servers/api/contentrouting;contentrouting";
+option go_package = "github.com/4everland/ipfs-servers/api/contentrouting;contentrouting";
 option java_multiple_files = true;
 option java_package = "api.ipfs.content.routing";
 

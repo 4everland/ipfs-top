@@ -1,6 +1,6 @@
 server:
   grpc:
-    addr: 0.0.0.0:28081}
+    addr: 0.0.0.0:28081
     timeout: 30s
   node:
     multiAddr:

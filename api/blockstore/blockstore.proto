@@ -5,11 +5,9 @@ package api.ipfs.blockstore;
 import "google/protobuf/empty.proto";
 import "google/protobuf/wrappers.proto";
 
-option go_package = "ipfs-servers/api/blockstore;blockstore";
+option go_package = "github.com/4everland/ipfs-servers/api/blockstore;blockstore";
 option java_multiple_files = true;
 option java_package = "api.ipfs.blockstore";
-
-
 
 service Blockstore {
   rpc DeleteBlock (Cid) returns (google.protobuf.Empty);

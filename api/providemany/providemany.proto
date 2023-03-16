@@ -5,7 +5,7 @@ package api.ipfs.providemany;
 import "google/protobuf/empty.proto";
 import "google/protobuf/wrappers.proto";
 
-option go_package = "ipfs-servers/api/providemany;providemany";
+option go_package = "github.com/4everland/ipfs-servers/api/providemany;providemany";
 option java_multiple_files = true;
 option java_package = "api.ipfs.providemany";
 

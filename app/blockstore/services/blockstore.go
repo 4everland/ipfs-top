@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/4everland/ipfs-servers/app/blockstore/biz"
+	"github.com/4everland/ipfs-servers/app/blockstore/utils"
 	"io"
 
 	pb "github.com/4everland/ipfs-servers/api/blockstore"
@@ -28,15 +29,15 @@ func NewBlockstoreService(backend biz.BlockStore, index biz.BlockIndex) *Blockst
 func (s *BlockstoreService) DeleteBlock(ctx context.Context, req *pb.Cid) (*emptypb.Empty, error) {
 	c, err := cid.Cast(req.Str)
 	if err != nil {
-		return nil, err
+		return nil, utils.GrpcErrorWrapper(err)
 	}
 	err = s.index.Delete(ctx, c.String())
 	if err != nil {
-		return nil, err
+		return nil, utils.GrpcErrorWrapper(err)
 	}
 	err = s.backend.Delete(ctx, c.String())
 	if err != nil {
-		return nil, err
+		return nil, utils.GrpcErrorWrapper(err)
 	}
 	return &emptypb.Empty{}, nil
 }
@@ -44,11 +45,11 @@ func (s *BlockstoreService) DeleteBlock(ctx context.Context, req *pb.Cid) (*empt
 func (s *BlockstoreService) Has(ctx context.Context, req *pb.Cid) (*wrapperspb.BoolValue, error) {
 	c, err := cid.Cast(req.Str)
 	if err != nil {
-		return nil, err
+		return nil, utils.GrpcErrorWrapper(err)
 	}
 	exists, err := s.index.Has(ctx, c.String())
 	if err != nil {
-		return nil, err
+		return nil, utils.GrpcErrorWrapper(err)
 	}
 	return &wrapperspb.BoolValue{Value: exists}, nil
 }
@@ -56,23 +57,23 @@ func (s *BlockstoreService) Has(ctx context.Context, req *pb.Cid) (*wrapperspb.B
 func (s *BlockstoreService) Get(ctx context.Context, req *pb.Cid) (*pb.Block, error) {
 	c, err := cid.Cast(req.Str)
 	if err != nil {
-		return nil, err
+		return nil, utils.GrpcErrorWrapper(err)
 	}
 	exists, err := s.index.Has(ctx, c.String())
 	if err != nil {
-		return nil, err
+		return nil, utils.GrpcErrorWrapper(err)
 	}
 	if !exists {
 		return nil, nil
 	}
 	r, err := s.backend.Get(ctx, c.String())
 	if err != nil {
-		return nil, err
+		return nil, utils.GrpcErrorWrapper(err)
 	}
 	defer r.Close()
 	data, err := io.ReadAll(r)
 	if err != nil {
-		return nil, err
+		return nil, utils.GrpcErrorWrapper(err)
 	}
 	return &pb.Block{
 		Cid:  req,
@@ -83,11 +84,11 @@ func (s *BlockstoreService) Get(ctx context.Context, req *pb.Cid) (*pb.Block, er
 func (s *BlockstoreService) GetSize(ctx context.Context, req *pb.Cid) (*wrapperspb.Int32Value, error) {
 	c, err := cid.Cast(req.Str)
 	if err != nil {
-		return nil, err
+		return nil, utils.GrpcErrorWrapper(err)
 	}
 	iv, err := s.index.Get(ctx, c.String())
 	if err != nil {
-		return nil, err
+		return nil, utils.GrpcErrorWrapper(err)
 	}
 	size, _ := iv.Size()
 	return &wrapperspb.Int32Value{Value: int32(size)}, nil
@@ -96,15 +97,15 @@ func (s *BlockstoreService) GetSize(ctx context.Context, req *pb.Cid) (*wrappers
 func (s *BlockstoreService) Put(ctx context.Context, req *pb.Block) (*emptypb.Empty, error) {
 	c, err := cid.Cast([]byte(req.Cid.Str))
 	if err != nil {
-		return nil, err
+		return nil, utils.GrpcErrorWrapper(err)
 	}
 	err = s.backend.Put(ctx, c.String(), c.String(), req.Data)
 	if err != nil {
-		return nil, err
+		return nil, utils.GrpcErrorWrapper(err)
 	}
 	err = s.index.Put(ctx, c.String(), biz.NewIndexValue(0, uint32(len(req.Data)), 0, c.String()))
 	if err != nil {
-		return nil, err
+		return nil, utils.GrpcErrorWrapper(err)
 	}
 	return &emptypb.Empty{}, nil
 }
@@ -118,12 +119,12 @@ func (s *BlockstoreService) PutMany(srv pb.Blockstore_PutManyServer) error {
 				err = nil
 			}
 			_ = srv.SendAndClose(&emptypb.Empty{})
-			return err
+			return utils.GrpcErrorWrapper(err)
 		}
 
 		_, err = s.Put(context.Background(), b)
 		if err != nil {
-			return err
+			return utils.GrpcErrorWrapper(err)
 		}
 	}
 
@@ -136,7 +137,7 @@ func (s *BlockstoreService) AllKeysChan(_ *emptypb.Empty, conn pb.Blockstore_All
 		i--
 		err := conn.Send(&pb.Cid{})
 		if err != nil {
-			return err
+			return utils.GrpcErrorWrapper(err)
 		}
 		if i <= 0 {
 			break

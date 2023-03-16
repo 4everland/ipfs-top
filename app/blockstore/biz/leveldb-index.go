@@ -2,11 +2,20 @@ package biz
 
 import (
 	"context"
+	"errors"
+	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
 type LevelDbIndexStore struct {
 	db *leveldb.DB
+}
+
+func wrapperError(err error) error {
+	if errors.Is(err, leveldb.ErrNotFound) {
+		err = ipld.ErrNotFound{}
+	}
+	return err
 }
 
 func NewLevelDb(path string) BlockIndex {
@@ -24,22 +33,24 @@ func (lis *LevelDbIndexStore) Put(ctx context.Context, cid string, v IndexValue)
 }
 
 func (lis *LevelDbIndexStore) Has(ctx context.Context, cid string) (bool, error) {
-	return lis.db.Has([]byte(cid), nil)
+	exists, err := lis.db.Has([]byte(cid), nil)
+	return exists, wrapperError(err)
 }
 
 func (lis *LevelDbIndexStore) Delete(ctx context.Context, cid string) error {
-	return lis.db.Delete([]byte(cid), nil)
+	err := lis.db.Delete([]byte(cid), nil)
+	return wrapperError(err)
 }
 
 func (lis *LevelDbIndexStore) Get(ctx context.Context, cid string) (*IndexValue, error) {
 	v, err := lis.db.Get([]byte(cid), nil)
 
 	if err != nil {
-		return nil, err
+		return nil, wrapperError(err)
 	}
 	var iv = &IndexValue{}
 	err = iv.Decode(v)
-	return iv, nil
+	return iv, wrapperError(err)
 
 }
 

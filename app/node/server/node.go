@@ -104,13 +104,14 @@ func NewNodeServer(serverConf *conf.Server, logger log.Logger, svcs ...service.N
 }
 
 func (server *NodeServer) Start(ctx context.Context) (err error) {
-	server.dhtDs, err = dsleveldb.NewDatastore(server.leveldbpath, &dsleveldb.Options{
+	ds, err := dsleveldb.NewDatastore(server.leveldbpath, &dsleveldb.Options{
 		Filter: filter.NewBloomFilter(10),
 	})
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
+	server.dhtDs = ds
 
 	if server.h, err = libp2p.New(
 		libp2p.ListenAddrStrings(server.addrs...),
