@@ -9,7 +9,10 @@ import (
 )
 
 var (
-	bitSwapServiceOnce = sync.Once{}
+	bitSwapServiceOnce      = sync.Once{}
+	bitSwapServiceWatchOnce = sync.Once{}
+
+	bitSwapService *BitSwapService
 )
 
 type BitSwapService struct {
@@ -19,13 +22,20 @@ type BitSwapService struct {
 }
 
 func NewBitSwapService(bstore blockstore.Blockstore) *BitSwapService {
-	return &BitSwapService{
-		bs: bstore,
-	}
+	bitSwapServiceOnce.Do(func() {
+		bitSwapService = &BitSwapService{
+			bs: bstore,
+		}
+	})
+	return bitSwapService
+}
+
+func (bss *BitSwapService) BitSwap() *bitswap.Bitswap {
+	return bss.bitswapimpl
 }
 
 func (bss *BitSwapService) Watch(ctx context.Context, node NodeInterface) {
-	bitSwapServiceOnce.Do(func() {
+	bitSwapServiceWatchOnce.Do(func() {
 		net := network.NewFromIpfsHost(node.GetHost(), node.GetContentRouting())
 		bss.bitswapimpl = bitswap.New(ctx, net, bss.bs)
 	})

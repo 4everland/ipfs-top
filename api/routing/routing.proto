@@ -1,0 +1,117 @@
+syntax = "proto3";
+
+package api.ipfs.routing;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/4everland/ipfs-servers/api/routing;routing";
+option java_multiple_files = true;
+option java_package = "api.ipfs.routing";
+
+
+service Routing {
+  // ContentRouting
+  // Provide adds the given cid to the content routing system. If 'true' is
+  // passed, it also announces it, otherwise it is just kept in the local
+  // accounting of which objects are being provided.
+  rpc Provide (ProvideReq) returns (google.protobuf.Empty);
+
+  // Search for peers who are able to provide a given key
+  //
+  // When count is 0, this method will return an unbounded number of
+  // results.
+  rpc FindProvidersAsync(GetProvidersReq) returns (stream AddrInfo);
+
+  // ValueStore
+  // PutValue adds value corresponding to given Key.
+  rpc PutValue(PutReq) returns (google.protobuf.Empty);
+
+  // GetValue searches for the value corresponding to given Key.
+  rpc GetValue(GetReq) returns (GetReply);
+
+  // SearchValue searches for better and better values from this value
+  // store corresponding to the given Key. By default implementations must
+  // stop the search after a good value is found. A 'good' value is a value
+  // that would be returned from GetValue.
+  //
+  // Useful when you want a result *now* but still want to hear about
+  // better/newer results.
+  //
+  // Implementations of this methods won't return ErrNotFound. When a value
+  // couldn't be found, the channel will get closed without passing any results
+  rpc SearchValue(SearchReq) returns(stream SearchReply);
+
+  // PeerRouting
+  // FindPeer searches for a peer with given ID, returns a peer.AddrInfo
+  // with relevant addresses.
+  rpc FindPeer(Peer) returns(AddrInfo);
+
+
+  //BitSwap Block API
+  rpc GetBlock(Cid) returns (Block);
+
+  rpc GetBlocks(Cids) returns (stream Block);
+
+}
+
+message Cid {
+  bytes str = 1;
+}
+
+message Cids {
+  repeated Cid cid = 1;
+}
+
+message Block {
+  Cid cid = 1;
+  bytes data = 2;
+}
+
+message ProvideReq {
+  Cid cid = 1;
+  bool provide = 2;
+}
+
+message GetProvidersReq {
+  Cid cid = 1;
+  int64 count = 2;
+}
+
+message AddrInfo {
+  string id = 1;
+  repeated bytes multiaddr = 2;
+}
+
+message PutReq {
+  string key = 1;
+  bytes body = 2;
+  ValueStoreOption option = 3;
+}
+
+message ValueStoreOption {
+  bool expired = 1;
+  bool offline = 2;
+}
+
+message GetReq {
+  string key = 1;
+  ValueStoreOption option = 2;
+}
+
+message SearchReq {
+  string key = 1;
+  ValueStoreOption option = 2;
+}
+
+message SearchReply {
+  bytes data = 1;
+}
+
+message GetReply {
+  bytes data = 1;
+}
+
+message Peer {
+  string buf = 1;
+}
+

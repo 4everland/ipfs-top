@@ -1,8 +1,8 @@
 package server
 
 import (
-	"github.com/4everland/ipfs-servers/api/contentrouting"
 	"github.com/4everland/ipfs-servers/api/provide"
+	"github.com/4everland/ipfs-servers/api/routing"
 	"github.com/4everland/ipfs-servers/app/node/conf"
 	"github.com/4everland/ipfs-servers/app/node/service"
 	"github.com/4everland/ipfs-servers/enum"
@@ -33,7 +33,7 @@ func NewContentRoutingGRPCServer(c *conf.Server, routingSvc *service.ContentRout
 		opts = append(opts, grpc.Timeout(c.Grpc.Timeout.AsDuration()))
 	}
 	srv := grpc.NewServer(opts...)
-	contentrouting.RegisterContentRoutingServer(srv, routingSvc)
+	routing.RegisterContentRoutingServer(srv, routingSvc)
 	provide.RegisterProvideServer(srv, proSvc)
 	return srv
 }

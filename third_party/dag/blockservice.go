@@ -15,5 +15,9 @@ func NewGrpcBlockService(endpoint, exchangeEndpoint string) (blockservice.BlockS
 	if err != nil {
 		return nil, err
 	}
-	return newBlockService(store, nil), nil
+	ex, err := NewGrpcRouting(exchangeEndpoint)
+	if err != nil {
+		return nil, err
+	}
+	return newBlockService(store, ex), nil
 }

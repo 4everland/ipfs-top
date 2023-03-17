@@ -4,13 +4,12 @@ import (
 	"github.com/google/wire"
 )
 
-func NewNodeServices(bts *BitSwapService, ps *ProvideService) []NodeService {
+func NewNodeServices(bts *BitSwapService, ps *RoutingService) []NodeService {
 	return []NodeService{
 		bts,
-		NewContentRoutingService(),
 		ps,
 	}
 }
 
 // ProviderSet is server providers.
-var ProviderSet = wire.NewSet(NewContentRoutingService, NewBitSwapService, NewNodeServices, NewSimpleProvideService)
+var ProviderSet = wire.NewSet(NewBitSwapService, NewNodeServices, NewRoutingService)
