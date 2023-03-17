@@ -38,7 +38,7 @@ func (s *ContentRoutingService) Provide(ctx context.Context, req *pb.ProvideReq)
 	return &emptypb.Empty{}, err
 }
 func (s *ContentRoutingService) FindProvidersAsync(req *pb.GetProvidersReq, conn pb.ContentRouting_FindProvidersAsyncServer) error {
-	//todo... reprovider do not need this api
+	// todo... reprovider do not need this api
 	for {
 		err := conn.Send(&pb.AddrInfo{})
 		if err != nil {

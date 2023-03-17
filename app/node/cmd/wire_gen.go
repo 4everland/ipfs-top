@@ -7,7 +7,9 @@
 package main
 
 import (
+	"github.com/4everland/ipfs-servers/app/node/biz/provide"
 	"github.com/4everland/ipfs-servers/app/node/conf"
+	"github.com/4everland/ipfs-servers/app/node/data"
 	"github.com/4everland/ipfs-servers/app/node/server"
 	"github.com/4everland/ipfs-servers/app/node/service"
 	"github.com/go-kratos/kratos/v2"
@@ -21,16 +23,31 @@ import (
 // Injectors from wire.go:
 
 // wireApp init task receiver server application.
-func wireApp(confServer *conf.Server, data *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
-	blockstore := service.NewBlockStore(data)
+func wireApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
+	batching, err := data.NewLevelDbDatastore(confServer)
+	if err != nil {
+		return nil, nil, err
+	}
+	blockstore := data.NewBlockStore(confData)
 	bitSwapService := service.NewBitSwapService(blockstore)
-	v := service.NewNodeServices(bitSwapService)
-	nodeServer, err := server.NewNodeServer(confServer, logger, v...)
+	queue, err := provide.ProviderQueue(batching)
+	if err != nil {
+		return nil, nil, err
+	}
+	v := provide.SimpleProvider(queue)
+	keyChanFunc := data.NewKeyChanFunc(blockstore)
+	v2, err := provide.SimpleReprovider(confData, keyChanFunc)
+	if err != nil {
+		return nil, nil, err
+	}
+	provideService := service.NewSimpleProvideService(v, v2)
+	v3 := service.NewNodeServices(bitSwapService, provideService)
+	nodeServer, err := server.NewNodeServer(confServer, logger, batching, v3...)
 	if err != nil {
 		return nil, nil, err
 	}
 	contentRoutingService := service.NewContentRoutingService()
-	grpcServer := server.NewContentRoutingGRPCServer(confServer, contentRoutingService, logger)
+	grpcServer := server.NewContentRoutingGRPCServer(confServer, contentRoutingService, provideService, logger)
 	app := newApp(logger, nodeServer, grpcServer)
 	return app, func() {
 	}, nil

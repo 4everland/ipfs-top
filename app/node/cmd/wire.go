@@ -5,7 +5,9 @@
 package main
 
 import (
+	"github.com/4everland/ipfs-servers/app/node/biz"
 	"github.com/4everland/ipfs-servers/app/node/conf"
+	"github.com/4everland/ipfs-servers/app/node/data"
 	"github.com/4everland/ipfs-servers/app/node/server"
 	"github.com/4everland/ipfs-servers/app/node/service"
 	"github.com/go-kratos/kratos/v2"
@@ -15,5 +17,5 @@ import (
 
 // wireApp init task receiver server application.
 func wireApp(*conf.Server, *conf.Data, log.Logger) (*kratos.App, func(), error) {
-	panic(wire.Build(server.ProviderSet, service.ProviderSet, newApp))
+	panic(wire.Build(server.ProviderSet, service.ProviderSet, biz.ProviderSet, data.ProviderSet, newApp))
 }

@@ -3,14 +3,12 @@ package server
 import (
 	"context"
 	"encoding/base64"
-	"fmt"
 	"github.com/4everland/ipfs-servers/app/node/conf"
 	"github.com/4everland/ipfs-servers/app/node/data"
 	"github.com/4everland/ipfs-servers/app/node/service"
 	"github.com/4everland/ipfs-servers/app/node/types"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/ipfs/go-datastore"
-	dsleveldb "github.com/ipfs/go-ds-leveldb"
 	"github.com/ipfs/go-ipns"
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
@@ -27,7 +25,6 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/net/connmgr"
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
-	"github.com/syndtr/goleveldb/leveldb/filter"
 	"time"
 )
 
@@ -52,7 +49,7 @@ type NodeServer struct {
 	services []service.NodeService
 }
 
-func NewNodeServer(serverConf *conf.Server, logger log.Logger, svcs ...service.NodeService) (*NodeServer, error) {
+func NewNodeServer(serverConf *conf.Server, logger log.Logger, ds datastore.Batching, svcs ...service.NodeService) (*NodeServer, error) {
 	connManger, err := connmgr.NewConnManager(
 		int(serverConf.Node.LowWater), int(serverConf.Node.HighWater),
 		connmgr.WithGracePeriod(time.Duration(serverConf.Node.GracePeriod)*time.Second))
@@ -91,6 +88,7 @@ func NewNodeServer(serverConf *conf.Server, logger log.Logger, svcs ...service.N
 	}
 
 	return &NodeServer{
+		dhtDs:       ds,
 		leveldbpath: serverConf.Node.LeveldbPath,
 		addrs:       serverConf.Node.MultiAddr,
 		priKey:      priKey,
@@ -104,15 +102,6 @@ func NewNodeServer(serverConf *conf.Server, logger log.Logger, svcs ...service.N
 }
 
 func (server *NodeServer) Start(ctx context.Context) (err error) {
-	ds, err := dsleveldb.NewDatastore(server.leveldbpath, &dsleveldb.Options{
-		Filter: filter.NewBloomFilter(10),
-	})
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
-	server.dhtDs = ds
-
 	if server.h, err = libp2p.New(
 		libp2p.ListenAddrStrings(server.addrs...),
 		libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {

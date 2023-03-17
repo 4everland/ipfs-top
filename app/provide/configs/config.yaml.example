@@ -1,9 +1,0 @@
-server:
-  grpc:
-    addr: 0.0.0.0:8088
-    timeout: 20s
-data:
-  blockstore_uri: "127.0.0.1:9000"
-  node_uri: "127.0.0.1:9001"
-  leveldb_path: "./datastore"
-  reprovider_interval: 86400

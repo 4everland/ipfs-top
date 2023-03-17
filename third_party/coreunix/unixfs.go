@@ -64,8 +64,9 @@ func NewUnixFsServer(baseBlocks blockstore.Blockstore, exchange exchange.Interfa
 	dagService := merkledag.NewDAGService(bs)
 
 	return &UnixFsServer{
-		provider:   emptyProviderNotify{},
-		exchange:   exchange,
+		provider: emptyProviderNotify{},
+		exchange: exchange,
+		// todo... pinset
 		pinning:    nil,
 		baseBlocks: baseBlocks,
 		blockstore: &emptyGCBlockstore{

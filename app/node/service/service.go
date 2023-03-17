@@ -1,26 +1,16 @@
 package service
 
 import (
-	"github.com/4everland/ipfs-servers/app/node/conf"
-	"github.com/4everland/ipfs-servers/third_party/dag"
 	"github.com/google/wire"
-	blockstore "github.com/ipfs/go-ipfs-blockstore"
 )
 
-func NewBlockStore(config *conf.Data) blockstore.Blockstore {
-	s, err := dag.NewBlockStore(config.BlockstoreUri)
-	if err != nil {
-		panic(err)
-	}
-	return s
-}
-
-func NewNodeServices(bts *BitSwapService) []NodeService {
+func NewNodeServices(bts *BitSwapService, ps *ProvideService) []NodeService {
 	return []NodeService{
 		bts,
 		NewContentRoutingService(),
+		ps,
 	}
 }
 
 // ProviderSet is server providers.
-var ProviderSet = wire.NewSet(NewBlockStore, NewContentRoutingService, NewBitSwapService, NewNodeServices)
+var ProviderSet = wire.NewSet(NewContentRoutingService, NewBitSwapService, NewNodeServices, NewSimpleProvideService)

@@ -131,7 +131,7 @@ func (s *BlockstoreService) PutMany(srv pb.Blockstore_PutManyServer) error {
 }
 
 func (s *BlockstoreService) AllKeysChan(_ *emptypb.Empty, conn pb.Blockstore_AllKeysChanServer) error {
-	//TODO... get all keys
+	// TODO... get all keys
 	var i = 100
 	for {
 		i--

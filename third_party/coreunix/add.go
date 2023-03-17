@@ -171,6 +171,10 @@ func (adder *Adder) PinRoot(ctx context.Context, root ipld.Node) error {
 		return err
 	}
 
+	if adder.pinning == nil {
+		return nil
+	}
+
 	if adder.tempRoot.Defined() {
 		err := adder.pinning.Unpin(ctx, adder.tempRoot, true)
 		if err != nil {

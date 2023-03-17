@@ -42,5 +42,4 @@ app/*/configs/config.yaml
 .idea/
 *.swp
 /app/node/cmd/datastore/
-/app/provide/cmd/datastore/
 
