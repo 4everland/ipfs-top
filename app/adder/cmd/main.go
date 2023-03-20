@@ -4,7 +4,6 @@ import (
 	"flag"
 	"github.com/4everland/ipfs-servers/app/adder/conf"
 	"github.com/4everland/ipfs-servers/third_party/logx"
-
 	"os"
 
 	"github.com/go-kratos/kratos/v2"

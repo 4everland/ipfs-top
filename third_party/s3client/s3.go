@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -43,11 +42,10 @@ func NewS3Client(storage S3Config) *S3Storage {
 	//client, err := oss.New(storage.GetEndpoint(), storage.GetAccessKey(), storage.GetSecretKey())
 
 	bucket := storage.GetBucket()
-	headBucket, err := srv.HeadBucket(&s3.HeadBucketInput{Bucket: &bucket})
+	_, err := srv.HeadBucket(&s3.HeadBucketInput{Bucket: &bucket})
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(headBucket)
 
 	//exist, err := client.IsBucketExist(storage.GetBucket())
 	//if err != nil {

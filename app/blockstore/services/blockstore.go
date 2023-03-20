@@ -95,7 +95,7 @@ func (s *BlockstoreService) GetSize(ctx context.Context, req *pb.Cid) (*wrappers
 }
 
 func (s *BlockstoreService) Put(ctx context.Context, req *pb.Block) (*emptypb.Empty, error) {
-	c, err := cid.Cast([]byte(req.Cid.Str))
+	c, err := cid.Cast(req.Cid.Str)
 	if err != nil {
 		return nil, utils.GrpcErrorWrapper(err)
 	}
@@ -113,7 +113,6 @@ func (s *BlockstoreService) Put(ctx context.Context, req *pb.Block) (*emptypb.Em
 func (s *BlockstoreService) PutMany(srv pb.Blockstore_PutManyServer) error {
 	for {
 		b, err := srv.Recv()
-
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				err = nil
@@ -122,8 +121,7 @@ func (s *BlockstoreService) PutMany(srv pb.Blockstore_PutManyServer) error {
 			return utils.GrpcErrorWrapper(err)
 		}
 
-		_, err = s.Put(context.Background(), b)
-		if err != nil {
+		if _, err = s.Put(context.Background(), b); err != nil {
 			return utils.GrpcErrorWrapper(err)
 		}
 	}

@@ -20,6 +20,11 @@ message Server {
 }
 
 message Data {
+  enum DBType {
+    LevelDB = 0;
+    TiKV = 1;
+  }
+
   message S3 {
     string endpoint = 2;
     string region = 3;
@@ -27,7 +32,21 @@ message Data {
     string accessKey = 5;
     string secretKey = 6;
   }
-  S3 storage = 1;
 
-  string leveldb = 2;
+  message DB {
+    message LevelDB {
+      string path = 1;
+    }
+
+    message TiKV {
+      repeated string addrs = 1;
+    }
+
+    DBType type = 1;
+    LevelDB leveldb = 2;
+    TiKV tikv = 3;
+  }
+
+  S3 storage = 1;
+  DB db = 2;
 }

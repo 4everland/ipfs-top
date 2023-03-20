@@ -22,7 +22,7 @@ func NewApiHttpServer(c *conf.Server, s *service.AdderService, logger log.Logger
 			})),
 		),
 		//http.RequestDecoder(middleware.TransformAdderRequest),
-		//http.ErrorEncoder(middleware.TransformAdderErrorResponse),
+		http.ErrorEncoder(errorEncoder),
 	}
 
 	if c.Http.Addr != "" {

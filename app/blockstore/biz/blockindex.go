@@ -65,5 +65,14 @@ func (iv IndexValue) OffSet() (start, end uint32) {
 }
 
 func NewIndexStore(data *conf.Data) BlockIndex {
-	return NewLevelDb(data.Leveldb)
+	if data.GetDb().GetType() == conf.Data_TiKV {
+		db, err := NewTiKv(data.GetDb().GetTikv().GetAddrs()...)
+		if err != nil {
+			panic(err)
+		}
+
+		return db
+	}
+
+	return NewLevelDb(data.GetDb().GetLeveldb().GetPath())
 }

@@ -7,13 +7,14 @@ import (
 	"github.com/4everland/ipfs-servers/third_party/coreunix"
 	"github.com/4everland/ipfs-servers/third_party/dag"
 	"github.com/go-kratos/kratos/v2/errors"
-	"github.com/go-kratos/kratos/v2/transport/http"
+	httpctx "github.com/go-kratos/kratos/v2/transport/http"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	"github.com/ipfs/go-libipfs/files"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
 	"mime"
 	"mime/multipart"
+	"net/http"
 	"path"
 )
 
@@ -81,17 +82,8 @@ func NewBlockStore(config *conf.Data) blockstore.Blockstore {
 	return s
 }
 
-func (a *AdderService) Add(ctx http.Context) (err error) {
+func (a *AdderService) Add(ctx httpctx.Context) (err error) {
 	w := ctx.Response()
-	var writeHeader = false
-	defer func() {
-		if !writeHeader && err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(500)
-			_, _ = w.Write(transformAdderErrorResponse(err))
-		}
-
-	}()
 	r := ctx.Request()
 	contentType := r.Header.Get(contentTypeHeader)
 	mediatype, _, _ := mime.ParseMediaType(contentType)
@@ -99,20 +91,21 @@ func (a *AdderService) Add(ctx http.Context) (err error) {
 	var f files.Directory
 	if mediatype == "multipart/form-data" {
 		var reader *multipart.Reader
-		reader, err = r.MultipartReader()
-		if err != nil {
+		if reader, err = r.MultipartReader(); err != nil {
 			return
 		}
 
-		f, err = files.NewFileFromPartReader(reader, mediatype)
-		if err != nil {
+		if f, err = files.NewFileFromPartReader(reader, mediatype); err != nil {
 			return
 		}
 	}
-	var addRequest AddRequest
 
-	err = ctx.BindQuery(&addRequest)
-	if err != nil {
+	if f == nil {
+		return fmt.Errorf("file can't be empty")
+	}
+
+	var addRequest AddRequest
+	if err = ctx.BindQuery(&addRequest); err != nil {
 		return
 	}
 
@@ -153,12 +146,11 @@ func (a *AdderService) Add(ctx http.Context) (err error) {
 	quiet = quiet || quieter
 
 	addit := toadd.Entries()
-	writeHeader = true
 	lastEvent := AddEvent{}
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Transfer-Encoding", "chunked")
 	w.Header().Set("X-Chunked-Output", "1")
-	w.WriteHeader(200)
+	w.WriteHeader(http.StatusOK)
 	for addit.Next() {
 		_, dir := addit.Node().(files.Directory)
 		errCh := make(chan error, 1)
@@ -179,8 +171,7 @@ func (a *AdderService) Add(ctx http.Context) (err error) {
 		for event := range events {
 			output, ok := event.(*coreiface.AddEvent)
 			if !ok {
-				err = fmt.Errorf("unknown event type")
-				return
+				return fmt.Errorf("unknown event type")
 			}
 
 			h := ""
@@ -229,8 +220,7 @@ func (a *AdderService) Add(ctx http.Context) (err error) {
 	}
 
 	if added == 0 {
-		err = fmt.Errorf("expected a file argument")
-		return
+		return fmt.Errorf("expected a file argument")
 	}
 	if quieter {
 		_, _ = w.Write(lastEvent.Marshal())

@@ -9,4 +9,10 @@ data:
     bucket: "ipfs-blocks-xxxx"
     accessKey: ""
     secretKey: ""
-  leveldb: "./db"
+  db:
+    type: LevelDB
+    leveldb:
+      path: ./db
+    tikv:
+      addrs:
+        - 127.0.0.1:2379
