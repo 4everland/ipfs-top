@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/4everland/ipfs-servers/app/blockstore/biz"
 	"github.com/4everland/ipfs-servers/app/blockstore/utils"
+	ipld "github.com/ipfs/go-ipld-format"
 	"io"
 
 	pb "github.com/4everland/ipfs-servers/api/blockstore"
@@ -64,7 +65,7 @@ func (s *BlockstoreService) Get(ctx context.Context, req *pb.Cid) (*pb.Block, er
 		return nil, utils.GrpcErrorWrapper(err)
 	}
 	if !exists {
-		return nil, nil
+		return nil, utils.GrpcErrorWrapper(ipld.ErrNotFound{})
 	}
 	r, err := s.backend.Get(ctx, c.String())
 	if err != nil {

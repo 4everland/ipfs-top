@@ -6,9 +6,9 @@ import (
 	"github.com/4everland/ipfs-servers/app/adder/conf"
 	"github.com/4everland/ipfs-servers/third_party/coreunix"
 	"github.com/4everland/ipfs-servers/third_party/dag"
-	"github.com/go-kratos/kratos/v2/errors"
 	httpctx "github.com/go-kratos/kratos/v2/transport/http"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
+	exchange "github.com/ipfs/go-ipfs-exchange-interface"
 	"github.com/ipfs/go-libipfs/files"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
@@ -49,23 +49,6 @@ func (e AddEvent) Marshal() []byte {
 	return marshal
 }
 
-type errAdderResponse struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
-	Type    string `json:"type"`
-}
-
-func transformAdderErrorResponse(err error) []byte {
-	se := errors.FromError(err)
-	v := errAdderResponse{
-		Code:    se.Reason,
-		Message: se.Message,
-	}
-
-	data, _ := json.Marshal(v)
-	return data
-}
-
 type AdderService struct {
 	unixfs *coreunix.UnixFsServer
 }
@@ -76,6 +59,14 @@ func NewAdderService(unixfs *coreunix.UnixFsServer) *AdderService {
 
 func NewBlockStore(config *conf.Data) blockstore.Blockstore {
 	s, err := dag.NewBlockStore(config.BlockstoreUri)
+	if err != nil {
+		panic(err)
+	}
+	return s
+}
+
+func NewExchange(config *conf.Data) exchange.Interface {
+	s, err := dag.NewGrpcRouting(config.ExchangeEndpoint)
 	if err != nil {
 		panic(err)
 	}

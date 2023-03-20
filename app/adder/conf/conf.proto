@@ -21,5 +21,6 @@ message Server {
 
 message Data {
   string blockstore_uri = 1;
+  string exchange_endpoint = 2;
 }
 

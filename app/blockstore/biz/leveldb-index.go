@@ -34,7 +34,14 @@ func (lis *LevelDbIndexStore) Put(ctx context.Context, cid string, v IndexValue)
 
 func (lis *LevelDbIndexStore) Has(ctx context.Context, cid string) (bool, error) {
 	exists, err := lis.db.Has([]byte(cid), nil)
-	return exists, wrapperError(err)
+	if err != nil {
+		if errors.Is(err, leveldb.ErrNotFound) {
+			return false, nil
+		}
+
+		return false, wrapperError(err)
+	}
+	return exists, nil
 }
 
 func (lis *LevelDbIndexStore) Delete(ctx context.Context, cid string) error {

@@ -6,4 +6,4 @@ import (
 )
 
 // ProviderSet is service providers.
-var ProviderSet = wire.NewSet(NewAdderService, coreunix.NewUnixFsServerOffline, NewBlockStore)
+var ProviderSet = wire.NewSet(NewAdderService, coreunix.NewUnixFsServer, NewBlockStore, NewExchange)

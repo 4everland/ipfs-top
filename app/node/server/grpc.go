@@ -1,7 +1,6 @@
 package server
 
 import (
-	"github.com/4everland/ipfs-servers/api/provide"
 	"github.com/4everland/ipfs-servers/api/routing"
 	"github.com/4everland/ipfs-servers/app/node/conf"
 	"github.com/4everland/ipfs-servers/app/node/service"
@@ -15,7 +14,7 @@ import (
 )
 
 // NewContentRoutingGRPCServer new a gRPC server.
-func NewContentRoutingGRPCServer(c *conf.Server, routingSvc *service.ContentRoutingService, proSvc *service.ProvideService, logger log.Logger) *grpc.Server {
+func NewContentRoutingGRPCServer(c *conf.Server, routingSvc *service.RoutingService, logger log.Logger) *grpc.Server {
 	var opts = []grpc.ServerOption{
 		grpc.Middleware(
 			recovery.Recovery(),
@@ -33,7 +32,6 @@ func NewContentRoutingGRPCServer(c *conf.Server, routingSvc *service.ContentRout
 		opts = append(opts, grpc.Timeout(c.Grpc.Timeout.AsDuration()))
 	}
 	srv := grpc.NewServer(opts...)
-	routing.RegisterContentRoutingServer(srv, routingSvc)
-	provide.RegisterProvideServer(srv, proSvc)
+	routing.RegisterRoutingServer(srv, routingSvc)
 	return srv
 }
