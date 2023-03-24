@@ -16,3 +16,7 @@ data:
     tikv:
       addrs:
         - 127.0.0.1:2379
+  cache:
+    lruSize: 64
+    basePath: "./cache"
+    indexPath: "./cache-index"

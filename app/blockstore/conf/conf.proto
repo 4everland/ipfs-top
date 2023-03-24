@@ -26,11 +26,11 @@ message Data {
   }
 
   message S3 {
-    string endpoint = 2;
-    string region = 3;
-    string bucket = 4;
-    string accessKey = 5;
-    string secretKey = 6;
+    string endpoint = 1;
+    string region = 2;
+    string bucket = 3;
+    string accessKey = 4;
+    string secretKey = 5;
   }
 
   message DB {
@@ -47,6 +47,13 @@ message Data {
     TiKV tikv = 3;
   }
 
+  message Cache {
+    int64 lruSize = 1;
+    string basePath = 2;
+    string indexPath = 3;
+  }
+
   S3 storage = 1;
   DB db = 2;
+  Cache cache = 3;
 }
