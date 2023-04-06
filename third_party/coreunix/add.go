@@ -323,8 +323,6 @@ func (adder *Adder) AddAllAndPin(ctx context.Context, file files.Node) (ipld.Nod
 	// output directory events
 	err = adder.outputDirs(name, root)
 	if err != nil {
-		cc := nd.Cid().String()
-		fmt.Println(cc)
 		return nil, err
 	}
 

@@ -3,12 +3,8 @@ package service
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/4everland/ipfs-servers/app/adder/conf"
 	"github.com/4everland/ipfs-servers/third_party/coreunix"
-	"github.com/4everland/ipfs-servers/third_party/dag"
 	httpctx "github.com/go-kratos/kratos/v2/transport/http"
-	blockstore "github.com/ipfs/go-ipfs-blockstore"
-	exchange "github.com/ipfs/go-ipfs-exchange-interface"
 	"github.com/ipfs/go-libipfs/files"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
@@ -57,22 +53,6 @@ func NewAdderService(unixfs *coreunix.UnixFsServer) *AdderService {
 	return &AdderService{unixfs}
 }
 
-func NewBlockStore(config *conf.Data) blockstore.Blockstore {
-	s, err := dag.NewBlockStore(config.BlockstoreUri)
-	if err != nil {
-		panic(err)
-	}
-	return s
-}
-
-func NewExchange(config *conf.Data) exchange.Interface {
-	s, err := dag.NewGrpcRouting(config.ExchangeEndpoint)
-	if err != nil {
-		panic(err)
-	}
-	return s
-}
-
 func (a *AdderService) Add(ctx httpctx.Context) (err error) {
 	w := ctx.Response()
 	r := ctx.Request()
@@ -98,6 +78,9 @@ func (a *AdderService) Add(ctx httpctx.Context) (err error) {
 	var addRequest AddRequest
 	if err = ctx.BindQuery(&addRequest); err != nil {
 		return
+	}
+	if addRequest.Chunker == "" {
+		addRequest.Chunker = "size-262144"
 	}
 
 	toadd := f

@@ -12,7 +12,7 @@ import (
 	"github.com/go-kratos/kratos/v2/transport/http"
 )
 
-func NewApiHttpServer(c *conf.Server, s *service.AdderService, logger log.Logger) *http.Server {
+func NewApiHttpServer(c *conf.Server, s *service.AdderService, ps *service.PinService, logger log.Logger) *http.Server {
 	var opts = []http.ServerOption{
 		http.Middleware(
 			recovery.Recovery(),
@@ -33,10 +33,13 @@ func NewApiHttpServer(c *conf.Server, s *service.AdderService, logger log.Logger
 	}
 	srv := http.NewServer(opts...)
 
-	srv.Route("/").GET("ping", func(ctx http.Context) error {
+	r := srv.Route("/")
+	r.GET("ping", func(ctx http.Context) error {
 		return ctx.String(200, "pong")
 	})
 
-	srv.Route("/").POST("/api/v0/add", s.Add)
+	r.POST("/api/v0/add", s.Add)
+	r.POST("/api/v0/pin/add", ps.Add)
+
 	return srv
 }

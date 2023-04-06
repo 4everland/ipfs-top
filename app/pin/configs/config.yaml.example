@@ -1,0 +1,14 @@
+server:
+  grpc:
+    addr: 0.0.0.0:9002
+    timeout: 100s
+data:
+  datastore:
+    type: leveldb
+    leveldb:
+      path: ./db
+    tikv:
+      addrs:
+        - 127.0.0.1:2379
+  blockstore_uri: "127.0.0.1:9000"
+  exchange_endpoint: "127.0.0.1:11002"

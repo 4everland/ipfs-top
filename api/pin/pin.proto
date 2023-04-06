@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package api.ipfs.pin;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/4everland/ipfs-servers/api/pin;pin";
+option java_multiple_files = true;
+option java_package = "api.ipfs.pin";
+
+
+
+message AddReq {
+  string path = 1;
+  bool recursive = 2;
+}
+
+message LsReq {
+  string type = 1;
+}
+
+message IsPinnedReq {
+  string path = 1;
+  string withType = 2;
+}
+
+message RmReq {
+  string path = 1;
+  bool recursive = 2;
+}
+
+
+message UpdateReq {
+  string form = 1;
+  string to = 2;
+  bool unpin = 3;
+}
+
+service Pin {
+  rpc Add(AddReq) returns (google.protobuf.Empty);
+  rpc Ls(LsReq) returns (stream PinInfo);
+  rpc IsPinned(IsPinnedReq) returns (IsPinnedResp);
+  rpc Rm(RmReq) returns (google.protobuf.Empty);
+  rpc Update(UpdateReq) returns (google.protobuf.Empty);
+  rpc Verify(google.protobuf.Empty) returns (stream VerifyResp);
+}
+
+message IsPinnedResp {
+  string cid = 1;
+  bool isPinned = 2;
+}
+
+message PinInfo {
+  string  pinType = 1;
+  string cid  = 2;
+  string err = 3;
+}
+
+message VerifyResp {
+
+}

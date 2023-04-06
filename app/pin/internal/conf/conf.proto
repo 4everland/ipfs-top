@@ -1,0 +1,47 @@
+syntax = "proto3";
+package ipfs.adder.conf;
+
+option go_package = "ipfs-servers/app/adder/conf;conf";
+
+import "google/protobuf/duration.proto";
+
+message Bootstrap {
+  Server server = 1;
+  Data data = 2;
+}
+
+message Server {
+  message GRPC {
+    string addr = 1;
+    string network = 2;
+    google.protobuf.Duration timeout = 3;
+  }
+
+  GRPC grpc = 1;
+}
+
+message Data {
+  enum DBType {
+    LevelDB = 0;
+    TiKV = 1;
+  }
+
+  message Datastore {
+    message LevelDB {
+      string path = 1;
+    }
+
+    message TiKV {
+      repeated string addrs = 1;
+    }
+
+    DBType type = 1;
+    LevelDB leveldb = 2;
+    TiKV tikv = 3;
+  }
+
+  string blockstore_uri = 1;
+  string exchange_endpoint = 2;
+  Datastore datastore = 3;
+}
+

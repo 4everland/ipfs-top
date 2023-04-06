@@ -2,6 +2,7 @@ package biz
 
 import (
 	"context"
+	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/tikv/client-go/v2/rawkv"
 )
 
@@ -34,10 +35,13 @@ func (tis *TiKvIndexStore) Delete(ctx context.Context, cid string) error {
 
 func (tis *TiKvIndexStore) Get(ctx context.Context, cid string) (*IndexValue, error) {
 	v, err := tis.client.Get(ctx, []byte(cid))
-
 	if err != nil {
 		return nil, err
 	}
+	if v == nil {
+		return nil, ipld.ErrNotFound{}
+	}
+
 	var iv = &IndexValue{}
 	err = iv.Decode(v)
 	return iv, nil

@@ -26,7 +26,9 @@ func wireApp(confServer *conf.Server, data *conf.Data, logger log.Logger) (*krat
 	exchangeInterface := service.NewExchange(data)
 	unixFsServer := coreunix.NewUnixFsServer(blockstore, exchangeInterface)
 	adderService := service.NewAdderService(unixFsServer)
-	httpServer := server.NewApiHttpServer(confServer, adderService, logger)
+	pinAPI := service.NewPinAPI(data)
+	pinService := service.NewPinService(pinAPI, blockstore, exchangeInterface)
+	httpServer := server.NewApiHttpServer(confServer, adderService, pinService, logger)
 	app := newApp(logger, httpServer)
 	return app, func() {
 	}, nil
