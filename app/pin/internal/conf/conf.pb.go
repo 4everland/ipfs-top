@@ -300,7 +300,7 @@ type Data_Datastore struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Type    Data_DBType             `protobuf:"varint,1,opt,name=type,proto3,enum=ipfs.adder.conf.Data_DBType" json:"type,omitempty"`
+	Type    Data_DBType             `protobuf:"varint,1,opt,name=type,proto3,enum=ipfs.rpc.conf.Data_DBType" json:"type,omitempty"`
 	Leveldb *Data_Datastore_LevelDB `protobuf:"bytes,2,opt,name=leveldb,proto3" json:"leveldb,omitempty"`
 	Tikv    *Data_Datastore_TiKV    `protobuf:"bytes,3,opt,name=tikv,proto3" json:"tikv,omitempty"`
 }
@@ -525,25 +525,25 @@ func file_app_pin_internal_conf_conf_proto_rawDescGZIP() []byte {
 var file_app_pin_internal_conf_conf_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_app_pin_internal_conf_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_app_pin_internal_conf_conf_proto_goTypes = []interface{}{
-	(Data_DBType)(0),               // 0: ipfs.adder.conf.Data.DBType
-	(*Bootstrap)(nil),              // 1: ipfs.adder.conf.Bootstrap
-	(*Server)(nil),                 // 2: ipfs.adder.conf.Server
-	(*Data)(nil),                   // 3: ipfs.adder.conf.Data
-	(*Server_GRPC)(nil),            // 4: ipfs.adder.conf.Server.GRPC
-	(*Data_Datastore)(nil),         // 5: ipfs.adder.conf.Data.Datastore
-	(*Data_Datastore_LevelDB)(nil), // 6: ipfs.adder.conf.Data.Datastore.LevelDB
-	(*Data_Datastore_TiKV)(nil),    // 7: ipfs.adder.conf.Data.Datastore.TiKV
+	(Data_DBType)(0),               // 0: ipfs.rpc.conf.Data.DBType
+	(*Bootstrap)(nil),              // 1: ipfs.rpc.conf.Bootstrap
+	(*Server)(nil),                 // 2: ipfs.rpc.conf.Server
+	(*Data)(nil),                   // 3: ipfs.rpc.conf.Data
+	(*Server_GRPC)(nil),            // 4: ipfs.rpc.conf.Server.GRPC
+	(*Data_Datastore)(nil),         // 5: ipfs.rpc.conf.Data.Datastore
+	(*Data_Datastore_LevelDB)(nil), // 6: ipfs.rpc.conf.Data.Datastore.LevelDB
+	(*Data_Datastore_TiKV)(nil),    // 7: ipfs.rpc.conf.Data.Datastore.TiKV
 	(*durationpb.Duration)(nil),    // 8: google.protobuf.Duration
 }
 var file_app_pin_internal_conf_conf_proto_depIdxs = []int32{
-	2, // 0: ipfs.adder.conf.Bootstrap.server:type_name -> ipfs.adder.conf.Server
-	3, // 1: ipfs.adder.conf.Bootstrap.data:type_name -> ipfs.adder.conf.Data
-	4, // 2: ipfs.adder.conf.Server.grpc:type_name -> ipfs.adder.conf.Server.GRPC
-	5, // 3: ipfs.adder.conf.Data.datastore:type_name -> ipfs.adder.conf.Data.Datastore
-	8, // 4: ipfs.adder.conf.Server.GRPC.timeout:type_name -> google.protobuf.Duration
-	0, // 5: ipfs.adder.conf.Data.Datastore.type:type_name -> ipfs.adder.conf.Data.DBType
-	6, // 6: ipfs.adder.conf.Data.Datastore.leveldb:type_name -> ipfs.adder.conf.Data.Datastore.LevelDB
-	7, // 7: ipfs.adder.conf.Data.Datastore.tikv:type_name -> ipfs.adder.conf.Data.Datastore.TiKV
+	2, // 0: ipfs.rpc.conf.Bootstrap.server:type_name -> ipfs.rpc.conf.Server
+	3, // 1: ipfs.rpc.conf.Bootstrap.data:type_name -> ipfs.rpc.conf.Data
+	4, // 2: ipfs.rpc.conf.Server.grpc:type_name -> ipfs.rpc.conf.Server.GRPC
+	5, // 3: ipfs.rpc.conf.Data.datastore:type_name -> ipfs.rpc.conf.Data.Datastore
+	8, // 4: ipfs.rpc.conf.Server.GRPC.timeout:type_name -> google.protobuf.Duration
+	0, // 5: ipfs.rpc.conf.Data.Datastore.type:type_name -> ipfs.rpc.conf.Data.DBType
+	6, // 6: ipfs.rpc.conf.Data.Datastore.leveldb:type_name -> ipfs.rpc.conf.Data.Datastore.LevelDB
+	7, // 7: ipfs.rpc.conf.Data.Datastore.tikv:type_name -> ipfs.rpc.conf.Data.Datastore.TiKV
 	8, // [8:8] is the sub-list for method output_type
 	8, // [8:8] is the sub-list for method input_type
 	8, // [8:8] is the sub-list for extension type_name

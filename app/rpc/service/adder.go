@@ -53,6 +53,10 @@ func NewAdderService(unixfs *coreunix.UnixFsServer) *AdderService {
 	return &AdderService{unixfs}
 }
 
+func (a *AdderService) RegisterRoute(route *httpctx.Router) {
+	route.POST("/add", a.Add)
+}
+
 func (a *AdderService) Add(ctx httpctx.Context) (err error) {
 	w := ctx.Response()
 	r := ctx.Request()

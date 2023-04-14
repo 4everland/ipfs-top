@@ -5,10 +5,6 @@ import (
 	"encoding/json"
 	"github.com/4everland/ipfs-servers/third_party/coreunix"
 	httpctx "github.com/go-kratos/kratos/v2/transport/http"
-	"github.com/ipfs/go-blockservice"
-	blockstore "github.com/ipfs/go-ipfs-blockstore"
-	exchange "github.com/ipfs/go-ipfs-exchange-interface"
-	"github.com/ipfs/go-merkledag"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
 	"github.com/ipfs/interface-go-ipfs-core/path"
@@ -20,11 +16,12 @@ type PinService struct {
 	resolver coreunix.DagResolve
 }
 
-func NewPinService(pinning iface.PinAPI, blockStore blockstore.Blockstore, exchange exchange.Interface) *PinService {
-	bs := blockservice.New(blockStore, exchange)
-	dagService := merkledag.NewDAGService(bs)
-	resolver := coreunix.NewDagResolver(context.Background(), dagService, bs)
+func NewPinService(pinning iface.PinAPI, resolver coreunix.DagResolve) *PinService {
 	return &PinService{pinning: pinning, resolver: resolver}
+}
+
+func (s *PinService) RegisterRoute(route *httpctx.Router) {
+	route.POST("/pin/add", s.Add)
 }
 
 type PinAddRequest struct {

@@ -79,7 +79,7 @@ func (api *BlocksGateway) GetUnixFsNode(ctx context.Context, p ifacepath.Resolve
 }
 
 func (api *BlocksGateway) LsUnixFsDir(ctx context.Context, p ifacepath.Resolved) (<-chan iface.DirEntry, error) {
-	return api.unixfs.Ls(ctx, p, ifaceoption.Unixfs.UseCumulativeSize(true))
+	return api.unixfs.Ls(ctx, p, ifaceoption.Unixfs.UseCumulativeSize(true), ifaceoption.Unixfs.ResolveChildren(false))
 }
 
 func (api *BlocksGateway) GetBlock(ctx context.Context, c cid.Cid) (blocks.Block, error) {

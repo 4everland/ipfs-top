@@ -6,9 +6,9 @@
 package main
 
 import (
-	"github.com/4everland/ipfs-servers/app/adder/conf"
-	"github.com/4everland/ipfs-servers/app/adder/server"
-	"github.com/4everland/ipfs-servers/app/adder/service"
+	"github.com/4everland/ipfs-servers/app/rpc/conf"
+	"github.com/4everland/ipfs-servers/app/rpc/server"
+	"github.com/4everland/ipfs-servers/app/rpc/service"
 	"github.com/4everland/ipfs-servers/third_party/coreunix"
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"
@@ -27,8 +27,15 @@ func wireApp(confServer *conf.Server, data *conf.Data, logger log.Logger) (*krat
 	unixFsServer := coreunix.NewUnixFsServer(blockstore, exchangeInterface)
 	adderService := service.NewAdderService(unixFsServer)
 	pinAPI := service.NewPinAPI(data)
-	pinService := service.NewPinService(pinAPI, blockstore, exchangeInterface)
-	httpServer := server.NewApiHttpServer(confServer, adderService, pinService, logger)
+	blockService := service.NewBlockService(blockstore, exchangeInterface)
+	dagService := service.NewDAGService(blockService)
+	dagResolve := service.NewDagResolve(dagService, blockService)
+	pinService := service.NewPinService(pinAPI, dagResolve)
+	lsService := service.NewLsService(unixFsServer)
+	offlineBlockService := service.NewOfflineBlockService(blockstore)
+	filesService := service.NewFilesService(dagService, offlineBlockService, dagResolve)
+	catService := service.NewCatService(unixFsServer)
+	httpServer := server.NewApiHttpServer(confServer, adderService, pinService, lsService, filesService, catService, logger)
 	app := newApp(logger, httpServer)
 	return app, func() {
 	}, nil

@@ -1,7 +1,7 @@
 syntax = "proto3";
 package ipfs.adder.conf;
 
-option go_package = "ipfs-servers/app/adder/conf;conf";
+option go_package = "ipfs-servers/app/rpc/conf;conf";
 
 import "google/protobuf/duration.proto";
 

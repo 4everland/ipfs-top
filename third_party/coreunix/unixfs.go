@@ -146,7 +146,7 @@ func (api *UnixFsServer) Add(ctx context.Context, files files.Node, opts ...opti
 	if settings.OnlyHash {
 		md := dagtest.Mock()
 		emptyDirNode := ft.EmptyDirNode()
-		// Use the same prefix for the "empty" MFS root as for the file adder.
+		// Use the same prefix for the "empty" MFS root as for the file rpc.
 		err = emptyDirNode.SetCidBuilder(fileAdder.CidBuilder)
 		if err != nil {
 			return nil, err
@@ -198,10 +198,9 @@ func (api *UnixFsServer) Ls(ctx context.Context, p path.Path, opts ...options.Un
 	}
 
 	dir, err := uio.NewDirectoryFromNode(ses.dag, dagnode)
-
-	//if err == uio.ErrNotADir {
-	//	return lsFromLinks(ctx, api.dag, dagnode.Links(), settings)
-	//}
+	if err == uio.ErrNotADir {
+		return lsFromLinks(ctx, api.dag, dagnode.Links(), settings)
+	}
 	if err != nil {
 		return nil, err
 	}

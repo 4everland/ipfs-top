@@ -1,0 +1,8 @@
+server:
+  http:
+    addr: 0.0.0.0:5001
+    timeout: 300s
+data:
+  blockstore_uri: "127.0.0.1:9000"
+  exchange_endpoint: "127.0.0.1:9001"
+  pin_endpoint: "127.0.0.1:9002"

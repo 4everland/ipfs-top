@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.28.1
 // 	protoc        v3.19.4
-// source: app/adder/conf/conf.proto
+// source: app/rpc/conf/conf.proto
 
 package conf
 
@@ -291,17 +291,17 @@ func file_app_adder_conf_conf_proto_rawDescGZIP() []byte {
 
 var file_app_adder_conf_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_app_adder_conf_conf_proto_goTypes = []interface{}{
-	(*Bootstrap)(nil),           // 0: ipfs.adder.conf.Bootstrap
-	(*Server)(nil),              // 1: ipfs.adder.conf.Server
-	(*Data)(nil),                // 2: ipfs.adder.conf.Data
-	(*Server_HTTP)(nil),         // 3: ipfs.adder.conf.Server.HTTP
+	(*Bootstrap)(nil),           // 0: ipfs.rpc.conf.Bootstrap
+	(*Server)(nil),              // 1: ipfs.rpc.conf.Server
+	(*Data)(nil),                // 2: ipfs.rpc.conf.Data
+	(*Server_HTTP)(nil),         // 3: ipfs.rpc.conf.Server.HTTP
 	(*durationpb.Duration)(nil), // 4: google.protobuf.Duration
 }
 var file_app_adder_conf_conf_proto_depIdxs = []int32{
-	1, // 0: ipfs.adder.conf.Bootstrap.server:type_name -> ipfs.adder.conf.Server
-	2, // 1: ipfs.adder.conf.Bootstrap.data:type_name -> ipfs.adder.conf.Data
-	3, // 2: ipfs.adder.conf.Server.http:type_name -> ipfs.adder.conf.Server.HTTP
-	4, // 3: ipfs.adder.conf.Server.HTTP.timeout:type_name -> google.protobuf.Duration
+	1, // 0: ipfs.rpc.conf.Bootstrap.server:type_name -> ipfs.rpc.conf.Server
+	2, // 1: ipfs.rpc.conf.Bootstrap.data:type_name -> ipfs.rpc.conf.Data
+	3, // 2: ipfs.rpc.conf.Server.http:type_name -> ipfs.rpc.conf.Server.HTTP
+	4, // 3: ipfs.rpc.conf.Server.HTTP.timeout:type_name -> google.protobuf.Duration
 	4, // [4:4] is the sub-list for method output_type
 	4, // [4:4] is the sub-list for method input_type
 	4, // [4:4] is the sub-list for extension type_name

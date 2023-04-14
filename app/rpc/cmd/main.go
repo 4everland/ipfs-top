@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"github.com/4everland/ipfs-servers/app/adder/conf"
+	"github.com/4everland/ipfs-servers/app/rpc/conf"
 	"github.com/4everland/ipfs-servers/third_party/logx"
 	"os"
 
@@ -31,7 +31,7 @@ var (
 )
 
 func init() {
-	Name = "ipfs.adder"
+	Name = "ipfs.rpc"
 	Version = "0.0.1"
 	flag.StringVar(&flagconf, "conf", "configs", "config path, eg: -conf config.yaml")
 	// debug, info, warn, error, fatal

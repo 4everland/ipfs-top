@@ -1,8 +1,8 @@
 package server
 
 import (
-	"github.com/4everland/ipfs-servers/app/adder/conf"
-	"github.com/4everland/ipfs-servers/app/adder/service"
+	"github.com/4everland/ipfs-servers/app/rpc/conf"
+	"github.com/4everland/ipfs-servers/app/rpc/service"
 	"github.com/4everland/ipfs-servers/enum"
 	"github.com/go-kratos/kratos/v2/log"
 	md "github.com/go-kratos/kratos/v2/metadata"
@@ -12,7 +12,14 @@ import (
 	"github.com/go-kratos/kratos/v2/transport/http"
 )
 
-func NewApiHttpServer(c *conf.Server, s *service.AdderService, ps *service.PinService, logger log.Logger) *http.Server {
+func NewApiHttpServer(
+	c *conf.Server,
+	s *service.AdderService,
+	ps *service.PinService,
+	ls *service.LsService,
+	fs *service.FilesService,
+	cs *service.CatService,
+	logger log.Logger) *http.Server {
 	var opts = []http.ServerOption{
 		http.Middleware(
 			recovery.Recovery(),
@@ -21,7 +28,6 @@ func NewApiHttpServer(c *conf.Server, s *service.AdderService, ps *service.PinSe
 				enum.MetadataServerKind: enum.ServerKindHTTP,
 			})),
 		),
-		//http.RequestDecoder(middleware.TransformAdderRequest),
 		http.ErrorEncoder(errorEncoder),
 	}
 
@@ -33,13 +39,16 @@ func NewApiHttpServer(c *conf.Server, s *service.AdderService, ps *service.PinSe
 	}
 	srv := http.NewServer(opts...)
 
-	r := srv.Route("/")
-	r.GET("ping", func(ctx http.Context) error {
+	srv.Route("/").GET("ping", func(ctx http.Context) error {
 		return ctx.String(200, "pong")
 	})
 
-	r.POST("/api/v0/add", s.Add)
-	r.POST("/api/v0/pin/add", ps.Add)
+	r := srv.Route("/api/v0")
+	s.RegisterRoute(r)
+	ps.RegisterRoute(r)
+	ls.RegisterRoute(r)
+	fs.RegisterRoute(r)
+	cs.RegisterRoute(r)
 
 	return srv
 }
