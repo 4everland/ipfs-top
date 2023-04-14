@@ -21,7 +21,7 @@ import (
 // Injectors from wire.go:
 
 // wireApp init task receiver server application.
-func wireApp(confServer *conf.Server, data *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
+func wireApp(confServer *conf.Server, data *conf.Data, version *conf.Version, logger log.Logger) (*kratos.App, func(), error) {
 	blockstore := service.NewBlockStore(data)
 	exchangeInterface := service.NewExchange(data)
 	unixFsServer := coreunix.NewUnixFsServer(blockstore, exchangeInterface)
@@ -35,7 +35,9 @@ func wireApp(confServer *conf.Server, data *conf.Data, logger log.Logger) (*krat
 	offlineBlockService := service.NewOfflineBlockService(blockstore)
 	filesService := service.NewFilesService(dagService, offlineBlockService, dagResolve)
 	catService := service.NewCatService(unixFsServer)
-	httpServer := server.NewApiHttpServer(confServer, adderService, pinService, lsService, filesService, catService, logger)
+	versionInfo := service.NewVersionInfo(version)
+	versionService := service.NewVersionService(versionInfo)
+	httpServer := server.NewApiHttpServer(confServer, adderService, pinService, lsService, filesService, catService, versionService, logger)
 	app := newApp(logger, httpServer)
 	return app, func() {
 	}, nil

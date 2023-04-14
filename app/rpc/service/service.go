@@ -14,6 +14,7 @@ import (
 	format "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/go-merkledag"
 	iface "github.com/ipfs/interface-go-ipfs-core"
+	"runtime"
 )
 
 // ProviderSet is service providers.
@@ -28,11 +29,14 @@ var ProviderSet = wire.NewSet(
 
 	coreunix.NewUnixFsServer,
 
+	NewVersionInfo,
+
 	NewAdderService,
 	NewPinService,
 	NewLsService,
 	NewFilesService,
 	NewCatService,
+	NewVersionService,
 )
 
 type offlineBlockService interface {
@@ -77,4 +81,14 @@ func NewDAGService(bs blockservice.BlockService) format.DAGService {
 
 func NewDagResolve(dagService format.DAGService, bs blockservice.BlockService) coreunix.DagResolve {
 	return coreunix.NewDagResolver(context.Background(), dagService, bs)
+}
+
+func NewVersionInfo(v *conf.Version) *VersionInfo {
+	return &VersionInfo{
+		Version: v.Version,
+		Commit:  v.Commit,
+		Repo:    v.Repo,
+		System:  runtime.GOARCH + "/" + runtime.GOOS,
+		Golang:  runtime.Version(),
+	}
 }

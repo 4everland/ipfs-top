@@ -8,6 +8,7 @@ import "google/protobuf/duration.proto";
 message Bootstrap {
   Server server = 1;
   Data data = 2;
+  Version version = 3;
 }
 
 message Server {
@@ -16,12 +17,17 @@ message Server {
     google.protobuf.Duration timeout = 2;
   }
   HTTP http = 1;
-
 }
 
 message Data {
   string blockstore_uri = 1;
   string exchange_endpoint = 2;
   string pin_endpoint = 3;
+}
+
+message Version {
+  string version = 1;
+  string repo = 2;
+  string commit = 3;
 }
 

@@ -19,6 +19,7 @@ func NewApiHttpServer(
 	ls *service.LsService,
 	fs *service.FilesService,
 	cs *service.CatService,
+	vs *service.VersionService,
 	logger log.Logger) *http.Server {
 	var opts = []http.ServerOption{
 		http.Middleware(
@@ -49,6 +50,7 @@ func NewApiHttpServer(
 	ls.RegisterRoute(r)
 	fs.RegisterRoute(r)
 	cs.RegisterRoute(r)
+	vs.RegisterRoute(r)
 
 	return srv
 }
