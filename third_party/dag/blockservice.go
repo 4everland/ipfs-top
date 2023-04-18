@@ -1,9 +1,9 @@
 package dag
 
 import (
-	"github.com/ipfs/go-blockservice"
-	blockstore "github.com/ipfs/go-ipfs-blockstore"
-	exchange "github.com/ipfs/go-ipfs-exchange-interface"
+	"github.com/ipfs/boxo/blockservice"
+	blockstore "github.com/ipfs/boxo/blockstore"
+	exchange "github.com/ipfs/boxo/exchange"
 )
 
 func newBlockService(store blockstore.Blockstore, ex exchange.Interface) blockservice.BlockService {

@@ -3,13 +3,13 @@ package service
 import (
 	"github.com/4everland/ipfs-servers/third_party/coreunix"
 	httpctx "github.com/go-kratos/kratos/v2/transport/http"
+	iface "github.com/ipfs/boxo/coreiface"
+	"github.com/ipfs/boxo/coreiface/options"
+	"github.com/ipfs/boxo/coreiface/path"
+	"github.com/ipfs/boxo/ipld/unixfs"
+	unixfs_pb "github.com/ipfs/boxo/ipld/unixfs/pb"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	http2 "github.com/ipfs/go-ipfs-cmds/http"
-	"github.com/ipfs/go-unixfs"
-	unixfs_pb "github.com/ipfs/go-unixfs/pb"
-	iface "github.com/ipfs/interface-go-ipfs-core"
-	"github.com/ipfs/interface-go-ipfs-core/options"
-	"github.com/ipfs/interface-go-ipfs-core/path"
 	"sort"
 )
 

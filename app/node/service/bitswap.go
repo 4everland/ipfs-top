@@ -2,9 +2,9 @@ package service
 
 import (
 	"context"
-	blockstore "github.com/ipfs/go-ipfs-blockstore"
-	"github.com/ipfs/go-libipfs/bitswap"
-	"github.com/ipfs/go-libipfs/bitswap/network"
+	"github.com/ipfs/boxo/bitswap"
+	"github.com/ipfs/boxo/bitswap/network"
+	blockstore "github.com/ipfs/boxo/blockstore"
 	"sync"
 )
 

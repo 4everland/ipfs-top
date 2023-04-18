@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
+	provider "github.com/ipfs/boxo/provider"
 	"github.com/ipfs/go-cid"
-	provider "github.com/ipfs/go-ipfs-provider"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/routing"
 	"sync"

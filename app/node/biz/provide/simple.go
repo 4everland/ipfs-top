@@ -3,10 +3,10 @@ package provide
 import (
 	"context"
 	"github.com/4everland/ipfs-servers/app/node/conf"
+	provider "github.com/ipfs/boxo/provider"
+	q "github.com/ipfs/boxo/provider/queue"
+	"github.com/ipfs/boxo/provider/simple"
 	"github.com/ipfs/go-datastore"
-	provider "github.com/ipfs/go-ipfs-provider"
-	q "github.com/ipfs/go-ipfs-provider/queue"
-	"github.com/ipfs/go-ipfs-provider/simple"
 	"github.com/libp2p/go-libp2p/core/routing"
 	"time"
 )

@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"github.com/4everland/ipfs-servers/third_party/coreunix"
 	httpctx "github.com/go-kratos/kratos/v2/transport/http"
+	iface "github.com/ipfs/boxo/coreiface"
+	"github.com/ipfs/boxo/coreiface/path"
+	"github.com/ipfs/boxo/files"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	http2 "github.com/ipfs/go-ipfs-cmds/http"
-	"github.com/ipfs/go-libipfs/files"
-	iface "github.com/ipfs/interface-go-ipfs-core"
-	"github.com/ipfs/interface-go-ipfs-core/path"
 	"io"
 )
 
