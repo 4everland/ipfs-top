@@ -5,10 +5,10 @@
 package main
 
 import (
-	"github.com/4everland/ipfs-servers/app/blockstore/biz"
-	"github.com/4everland/ipfs-servers/app/blockstore/conf"
-	"github.com/4everland/ipfs-servers/app/blockstore/server"
-	"github.com/4everland/ipfs-servers/app/blockstore/services"
+	"github.com/4everland/ipfs-servers/app/blockstore/internal/biz"
+	"github.com/4everland/ipfs-servers/app/blockstore/internal/conf"
+	"github.com/4everland/ipfs-servers/app/blockstore/internal/server"
+	"github.com/4everland/ipfs-servers/app/blockstore/internal/services"
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/google/wire"

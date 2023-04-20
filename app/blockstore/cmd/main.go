@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"github.com/4everland/ipfs-servers/app/blockstore/conf"
+	"github.com/4everland/ipfs-servers/app/blockstore/internal/conf"
 	"github.com/4everland/ipfs-servers/third_party/logx"
 
 	"os"

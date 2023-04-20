@@ -6,10 +6,10 @@ import (
 	"github.com/4everland/ipfs-servers/third_party/dag"
 	"github.com/4everland/ipfs-servers/third_party/datastore"
 	"github.com/google/wire"
+	blockstore "github.com/ipfs/boxo/blockstore"
+	exchange "github.com/ipfs/boxo/exchange"
 	ds "github.com/ipfs/go-datastore"
 	leveldb "github.com/ipfs/go-ds-leveldb"
-	blockstore "github.com/ipfs/go-ipfs-blockstore"
-	exchange "github.com/ipfs/go-ipfs-exchange-interface"
 	"github.com/syndtr/goleveldb/leveldb/filter"
 	"github.com/tikv/client-go/v2/rawkv"
 )

@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 	pb "github.com/4everland/ipfs-servers/api/pin"
+	coreiface "github.com/ipfs/boxo/coreiface"
+	caopts "github.com/ipfs/boxo/coreiface/options"
+	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/go-cid"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	caopts "github.com/ipfs/interface-go-ipfs-core/options"
-	"github.com/ipfs/interface-go-ipfs-core/path"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

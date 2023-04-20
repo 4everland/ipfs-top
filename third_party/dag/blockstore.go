@@ -3,9 +3,9 @@ package dag
 import (
 	"context"
 	pb "github.com/4everland/ipfs-servers/api/blockstore"
+	"github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
-	"github.com/ipfs/go-libipfs/blocks"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/emptypb"

@@ -5,9 +5,9 @@
 package main
 
 import (
-	"github.com/4everland/ipfs-servers/app/rpc/conf"
-	"github.com/4everland/ipfs-servers/app/rpc/server"
-	"github.com/4everland/ipfs-servers/app/rpc/service"
+	"github.com/4everland/ipfs-servers/app/rpc/internal/conf"
+	"github.com/4everland/ipfs-servers/app/rpc/internal/server"
+	"github.com/4everland/ipfs-servers/app/rpc/internal/service"
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/google/wire"

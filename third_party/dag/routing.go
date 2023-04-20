@@ -3,9 +3,9 @@ package dag
 import (
 	"context"
 	pb "github.com/4everland/ipfs-servers/api/routing"
+	exchange "github.com/ipfs/boxo/exchange"
+	"github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
-	exchange "github.com/ipfs/go-ipfs-exchange-interface"
-	"github.com/ipfs/go-libipfs/blocks"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/routing"
 	ma "github.com/multiformats/go-multiaddr"

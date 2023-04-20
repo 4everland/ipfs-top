@@ -1,8 +1,8 @@
 package dag
 
 import (
+	"github.com/ipfs/boxo/ipld/merkledag"
 	format "github.com/ipfs/go-ipld-format"
-	"github.com/ipfs/go-merkledag"
 )
 
 func NewGrpcDagService(blockEndpoint, exchangeEndpoint string) (format.DAGService, error) {
