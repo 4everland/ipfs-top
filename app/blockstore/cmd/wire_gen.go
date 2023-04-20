@@ -6,10 +6,10 @@
 package main
 
 import (
-	"github.com/4everland/ipfs-servers/app/blockstore/biz"
-	"github.com/4everland/ipfs-servers/app/blockstore/conf"
-	"github.com/4everland/ipfs-servers/app/blockstore/server"
-	"github.com/4everland/ipfs-servers/app/blockstore/services"
+	biz2 "github.com/4everland/ipfs-servers/app/blockstore/internal/biz"
+	"github.com/4everland/ipfs-servers/app/blockstore/internal/conf"
+	"github.com/4everland/ipfs-servers/app/blockstore/internal/server"
+	"github.com/4everland/ipfs-servers/app/blockstore/internal/services"
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"
 )
@@ -22,8 +22,8 @@ import (
 
 // wireApp init task receiver server application.
 func wireApp(confServer *conf.Server, data *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
-	blockStore := biz.NewBackendStorage(data, logger)
-	blockIndex := biz.NewIndexStore(data)
+	blockStore := biz2.NewBackendStorage(data, logger)
+	blockIndex := biz2.NewIndexStore(data)
 	blockstoreService := services.NewBlockstoreService(blockStore, blockIndex)
 	grpcServer := server.NewGRPCServer(confServer, blockstoreService, logger)
 	app := newApp(logger, grpcServer)

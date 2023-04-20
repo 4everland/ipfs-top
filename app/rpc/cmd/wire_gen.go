@@ -6,9 +6,9 @@
 package main
 
 import (
-	"github.com/4everland/ipfs-servers/app/rpc/conf"
-	"github.com/4everland/ipfs-servers/app/rpc/server"
-	"github.com/4everland/ipfs-servers/app/rpc/service"
+	"github.com/4everland/ipfs-servers/app/rpc/internal/conf"
+	"github.com/4everland/ipfs-servers/app/rpc/internal/server"
+	service2 "github.com/4everland/ipfs-servers/app/rpc/internal/service"
 	"github.com/4everland/ipfs-servers/third_party/coreunix"
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"
@@ -22,21 +22,21 @@ import (
 
 // wireApp init task receiver server application.
 func wireApp(confServer *conf.Server, data *conf.Data, version *conf.Version, logger log.Logger) (*kratos.App, func(), error) {
-	blockstore := service.NewBlockStore(data)
-	exchangeInterface := service.NewExchange(data)
+	blockstore := service2.NewBlockStore(data)
+	exchangeInterface := service2.NewExchange(data)
 	unixFsServer := coreunix.NewUnixFsServer(blockstore, exchangeInterface)
-	adderService := service.NewAdderService(unixFsServer)
-	pinAPI := service.NewPinAPI(data)
-	blockService := service.NewBlockService(blockstore, exchangeInterface)
-	dagService := service.NewDAGService(blockService)
-	dagResolve := service.NewDagResolve(dagService, blockService)
-	pinService := service.NewPinService(pinAPI, dagResolve)
-	lsService := service.NewLsService(unixFsServer)
-	offlineBlockService := service.NewOfflineBlockService(blockstore)
-	filesService := service.NewFilesService(dagService, offlineBlockService, dagResolve)
-	catService := service.NewCatService(unixFsServer)
-	versionInfo := service.NewVersionInfo(version)
-	versionService := service.NewVersionService(versionInfo)
+	adderService := service2.NewAdderService(unixFsServer)
+	pinAPI := service2.NewPinAPI(data)
+	blockService := service2.NewBlockService(blockstore, exchangeInterface)
+	dagService := service2.NewDAGService(blockService)
+	dagResolve := service2.NewDagResolve(dagService, blockService)
+	pinService := service2.NewPinService(pinAPI, dagResolve)
+	lsService := service2.NewLsService(unixFsServer)
+	offlineBlockService := service2.NewOfflineBlockService(blockstore)
+	filesService := service2.NewFilesService(dagService, offlineBlockService, dagResolve)
+	catService := service2.NewCatService(unixFsServer)
+	versionInfo := service2.NewVersionInfo(version)
+	versionService := service2.NewVersionService(versionInfo)
 	httpServer := server.NewApiHttpServer(confServer, adderService, pinService, lsService, filesService, catService, versionService, logger)
 	app := newApp(logger, httpServer)
 	return app, func() {

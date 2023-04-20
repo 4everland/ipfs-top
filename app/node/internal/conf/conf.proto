@@ -1,0 +1,37 @@
+syntax = "proto3";
+package ipfs.node.conf;
+
+option go_package = "ipfs-servers/app/node/internal/conf;conf";
+
+import "google/protobuf/duration.proto";
+
+message Bootstrap {
+  Server server = 1;
+  Data data = 2;
+}
+
+message Server {
+  message GRPC {
+    string addr = 1;
+    google.protobuf.Duration timeout = 2;
+  }
+
+  message Node {
+    repeated string multi_addr = 1;
+    repeated string peers = 2;
+    string private_key = 3;
+    int64 grace_period = 4;
+    int64 low_water = 5;
+    int64 high_water = 6;
+    string leveldb_path = 7;
+  }
+
+  GRPC grpc = 1;
+  Node node = 2;
+}
+
+message Data {
+  string blockstore_uri = 1;
+  int64 reprovider_interval = 2;
+}
+

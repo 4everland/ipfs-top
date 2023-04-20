@@ -1,7 +1,7 @@
 syntax = "proto3";
-package ipfs.pin.conf;
+package ipfs.blockstore.api;
 
-option go_package = "ipfs-servers/app/pin/internal/conf;conf";
+option go_package = "ipfs-servers/app/blockstore/internal/conf;conf";
 
 import "google/protobuf/duration.proto";
 
@@ -12,11 +12,10 @@ message Bootstrap {
 
 message Server {
   message GRPC {
-    string addr = 1;
-    string network = 2;
+    string network = 1;
+    string addr = 2;
     google.protobuf.Duration timeout = 3;
   }
-
   GRPC grpc = 1;
 }
 
@@ -26,7 +25,15 @@ message Data {
     TiKV = 1;
   }
 
-  message Datastore {
+  message S3 {
+    string endpoint = 1;
+    string region = 2;
+    string bucket = 3;
+    string accessKey = 4;
+    string secretKey = 5;
+  }
+
+  message DB {
     message LevelDB {
       string path = 1;
     }
@@ -40,8 +47,13 @@ message Data {
     TiKV tikv = 3;
   }
 
-  string blockstore_uri = 1;
-  string exchange_endpoint = 2;
-  Datastore datastore = 3;
-}
+  message Cache {
+    int64 lruSize = 1;
+    string basePath = 2;
+    string indexPath = 3;
+  }
 
+  S3 storage = 1;
+  DB db = 2;
+  Cache cache = 3;
+}
