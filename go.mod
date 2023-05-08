@@ -3,7 +3,7 @@ module github.com/4everland/ipfs-servers
 go 1.19
 
 require (
-	github.com/4everland/diskv/v3 v3.0.2
+	github.com/4everland/diskv/v3 v3.0.3
 	github.com/aws/aws-sdk-go v1.35.3
 	github.com/go-kratos/kratos/v2 v2.5.4
 	github.com/google/wire v0.5.0
