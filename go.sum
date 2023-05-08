@@ -381,8 +381,8 @@ dmitri.shuralyov.com/html/belt v0.0.0-20180602232347-f7d459c86be0/go.mod h1:JLBr
 dmitri.shuralyov.com/service/change v0.0.0-20181023043359-a85b471d5412/go.mod h1:a1inKt/atXimZ4Mv927x+r7UpyzRUf4emIoiiSC2TN4=
 dmitri.shuralyov.com/state v0.0.0-20180228185332-28bcc343414c/go.mod h1:0PRwlb0D6DFvNNtx+9ybjezNCa8XF0xaYcETyp6rHWU=
 git.apache.org/thrift.git v0.0.0-20180902110319-2566ecd5d999/go.mod h1:fPE2ZNJGynbRyZ4dJvy6G277gSllfV2HJqblrnkyeyg=
-github.com/4everland/diskv/v3 v3.0.2 h1:saWPHrJr0+03ewfLp7D+nY9GJZvcBaN2RWSy/94P8No=
-github.com/4everland/diskv/v3 v3.0.2/go.mod h1:bIWwUY0rM334vbH/Jo+ty6I7xe/TEsBRNW622VXWdXA=
+github.com/4everland/diskv/v3 v3.0.3 h1:Ze3FKk0hJ3ND0+eW9/+ls2fn1ZMrhBBXkNJ9dDFdNSg=
+github.com/4everland/diskv/v3 v3.0.3/go.mod h1:bIWwUY0rM334vbH/Jo+ty6I7xe/TEsBRNW622VXWdXA=
 github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 h1:cTp8I5+VIoKjsnZuH8vjyaysT/ses3EvZeaV/1UkF2M=
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
