@@ -33,5 +33,6 @@ message Server {
 message Data {
   string blockstore_uri = 1;
   int64 reprovider_interval = 2;
+  string blockstore_cert = 3;
 }
 

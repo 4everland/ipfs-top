@@ -7,7 +7,7 @@ import (
 )
 
 func NewBlockStore(config *conf.Data) blockstore.Blockstore {
-	s, err := dag.NewBlockStore(config.BlockstoreUri)
+	s, err := dag.NewBlockStore(config.BlockstoreUri, config.BlockstoreCert)
 	if err != nil {
 		panic(err)
 	}

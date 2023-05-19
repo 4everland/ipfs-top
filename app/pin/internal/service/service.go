@@ -22,7 +22,7 @@ var ProviderSet = wire.NewSet(
 )
 
 func NewBlockStore(config *conf.Data) blockstore.Blockstore {
-	s, err := dag.NewBlockStore(config.BlockstoreUri)
+	s, err := dag.NewBlockStore(config.BlockstoreUri, "")
 	if err != nil {
 		panic(err)
 	}
