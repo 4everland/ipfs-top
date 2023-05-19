@@ -7,8 +7,10 @@ import (
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"strings"
 )
 
 type grpcBlockstore struct {
@@ -22,10 +24,18 @@ func unWrapperError(err error) error {
 	return err
 }
 
-func NewBlockStore(endpoint string) (*grpcBlockstore, error) {
-	tlsOption := grpc.WithTransportCredentials(insecure.NewCredentials())
-
-	conn, err := grpc.Dial(endpoint, tlsOption)
+func NewBlockStore(endpoint, cert string) (*grpcBlockstore, error) {
+	var o []grpc.DialOption
+	if cert == "" {
+		o = append(o, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	} else {
+		cred, err := credentials.NewClientTLSFromFile(cert, strings.Split(endpoint, ":")[0])
+		if err != nil {
+			return nil, err
+		}
+		o = append(o, grpc.WithTransportCredentials(cred))
+	}
+	conn, err := grpc.Dial(endpoint, o...)
 	if err != nil {
 		return nil, err
 	}
