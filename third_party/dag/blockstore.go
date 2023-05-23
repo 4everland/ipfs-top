@@ -9,8 +9,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"strings"
+	"time"
 )
 
 type grpcBlockstore struct {
@@ -35,6 +37,11 @@ func NewBlockStore(endpoint, cert string) (*grpcBlockstore, error) {
 		}
 		o = append(o, grpc.WithTransportCredentials(cred))
 	}
+	o = append(o, grpc.WithKeepaliveParams(keepalive.ClientParameters{
+		Time:                30 * time.Second, // send pings every 10 seconds if there is no activity
+		Timeout:             2 * time.Second,  // wait 1 second for ping ack before considering the connection dead
+		PermitWithoutStream: true,             // send pings even without active streams
+	}))
 	conn, err := grpc.Dial(endpoint, o...)
 	if err != nil {
 		return nil, err
