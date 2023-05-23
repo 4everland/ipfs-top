@@ -26,7 +26,7 @@ require (
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/tikv/client-go/v2 v2.0.5
 	go.uber.org/automaxprocs v1.5.1
-	google.golang.org/grpc v1.53.0
+	google.golang.org/grpc v1.54.1
 	google.golang.org/protobuf v1.30.0
 )
 
