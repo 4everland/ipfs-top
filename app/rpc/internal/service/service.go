@@ -37,6 +37,7 @@ var ProviderSet = wire.NewSet(
 	NewFilesService,
 	NewCatService,
 	NewVersionService,
+	NewDagService,
 )
 
 type OfflineBlockService interface {
