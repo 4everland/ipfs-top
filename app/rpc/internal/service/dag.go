@@ -14,6 +14,7 @@ import (
 	"io"
 	"mime"
 	"mime/multipart"
+	"net/http"
 )
 
 type DagService struct {
@@ -38,6 +39,7 @@ type DagImportRequest struct {
 }
 
 func (s *DagService) DagImport(ctx httpctx.Context) (err error) {
+	w := ctx.Response()
 	res, err := http2.NewResponseEmitter(ctx.Response(), ctx.Request().Method, &cmds.Request{
 		Options: cmds.OptMap{cmds.EncLong: cmds.JSON},
 		Context: ctx,
@@ -72,6 +74,10 @@ func (s *DagService) DagImport(ctx httpctx.Context) (err error) {
 		}
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Transfer-Encoding", "chunked")
+	w.Header().Set("X-Chunked-Output", "1")
+	w.WriteHeader(http.StatusOK)
 	it := f.Entries()
 	for it.Next() {
 		file := files.FileFromEntry(it)
