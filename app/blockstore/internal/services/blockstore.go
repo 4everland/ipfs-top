@@ -3,15 +3,14 @@ package services
 import (
 	"context"
 	"errors"
+	pb "github.com/4everland/ipfs-servers/api/blockstore"
 	biz2 "github.com/4everland/ipfs-servers/app/blockstore/internal/biz"
 	"github.com/4everland/ipfs-servers/app/blockstore/internal/utils"
-	ipld "github.com/ipfs/go-ipld-format"
-	"io"
-
-	pb "github.com/4everland/ipfs-servers/api/blockstore"
 	"github.com/ipfs/go-cid"
+	ipld "github.com/ipfs/go-ipld-format"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+	"io"
 )
 
 type BlockstoreService struct {
@@ -32,6 +31,9 @@ func (s *BlockstoreService) DeleteBlock(ctx context.Context, req *pb.Cid) (*empt
 	if err != nil {
 		return nil, utils.GrpcErrorWrapper(err)
 	}
+	if c.Version() == 0 {
+		c = cid.NewCidV1(cid.DagProtobuf, c.Hash())
+	}
 	err = s.index.Delete(ctx, c.String())
 	if err != nil {
 		return nil, utils.GrpcErrorWrapper(err)
@@ -48,6 +50,9 @@ func (s *BlockstoreService) Has(ctx context.Context, req *pb.Cid) (*wrapperspb.B
 	if err != nil {
 		return nil, utils.GrpcErrorWrapper(err)
 	}
+	if c.Version() == 0 {
+		c = cid.NewCidV1(cid.DagProtobuf, c.Hash())
+	}
 	exists, err := s.index.Has(ctx, c.String())
 	if err != nil {
 		return nil, utils.GrpcErrorWrapper(err)
@@ -59,6 +64,9 @@ func (s *BlockstoreService) Get(ctx context.Context, req *pb.Cid) (*pb.Block, er
 	c, err := cid.Cast(req.Str)
 	if err != nil {
 		return nil, utils.GrpcErrorWrapper(err)
+	}
+	if c.Version() == 0 {
+		c = cid.NewCidV1(cid.DagProtobuf, c.Hash())
 	}
 	exists, err := s.index.Has(ctx, c.String())
 	if err != nil {
@@ -87,6 +95,9 @@ func (s *BlockstoreService) GetSize(ctx context.Context, req *pb.Cid) (*wrappers
 	if err != nil {
 		return nil, utils.GrpcErrorWrapper(err)
 	}
+	if c.Version() == 0 {
+		c = cid.NewCidV1(cid.DagProtobuf, c.Hash())
+	}
 	iv, err := s.index.Get(ctx, c.String())
 	if err != nil {
 		return nil, utils.GrpcErrorWrapper(err)
@@ -99,6 +110,9 @@ func (s *BlockstoreService) Put(ctx context.Context, req *pb.Block) (*emptypb.Em
 	c, err := cid.Cast(req.Cid.Str)
 	if err != nil {
 		return nil, utils.GrpcErrorWrapper(err)
+	}
+	if c.Version() == 0 {
+		c = cid.NewCidV1(cid.DagProtobuf, c.Hash())
 	}
 	err = s.backend.Put(ctx, c.String(), c.String(), req.Data)
 	if err != nil {
