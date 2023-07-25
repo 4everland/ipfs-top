@@ -14,7 +14,6 @@ import (
 	"io"
 	"mime"
 	"mime/multipart"
-	"net/http"
 )
 
 type BlocksService struct {
@@ -74,7 +73,7 @@ func (s *BlocksService) BlockPut(ctx httpctx.Context) (err error) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Transfer-Encoding", "chunked")
 	w.Header().Set("X-Chunked-Output", "1")
-	w.WriteHeader(http.StatusOK)
+	//w.WriteHeader(http.StatusOK)
 	var f files.Directory
 	if mediatype == "multipart/form-data" {
 		var reader *multipart.Reader
