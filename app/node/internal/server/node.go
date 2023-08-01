@@ -111,8 +111,8 @@ func (server *NodeServer) Start(ctx context.Context) (err error) {
 			}
 			nodeDht, er := dual.New(
 				ctx, h,
-				dual.DHTOption(dht.ProtocolPrefix(dht.DefaultPrefix)),
 				dual.DHTOption(
+					dht.ProtocolPrefix(dht.DefaultPrefix),
 					dht.RoutingTableLatencyTolerance(10*time.Second),
 					dht.Concurrency(3),
 					dht.Mode(dht.ModeAutoServer),
@@ -122,6 +122,7 @@ func (server *NodeServer) Start(ctx context.Context) (err error) {
 						"pk":   record.PublicKeyValidator{},
 						"ipns": ipns.Validator{KeyBook: server.ps},
 					}),
+					dht.EnableOptimisticProvide(),
 				),
 				dual.WanDHTOption(dht.BootstrapPeers(server.peers...)),
 			)

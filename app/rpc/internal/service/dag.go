@@ -5,12 +5,12 @@ import (
 	"fmt"
 	httpctx "github.com/go-kratos/kratos/v2/transport/http"
 	"github.com/ipfs/boxo/files"
-	gocarv2 "github.com/ipfs/boxo/ipld/car/v2"
 	"github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	http2 "github.com/ipfs/go-ipfs-cmds/http"
 	ipld "github.com/ipfs/go-ipld-format"
 	ipldlegacy "github.com/ipfs/go-ipld-legacy"
+	gocarv2 "github.com/ipld/go-car/v2"
 	"io"
 	"mime"
 	"mime/multipart"
@@ -18,12 +18,14 @@ import (
 )
 
 type DagService struct {
-	dag ipld.DAGService
+	dag     ipld.DAGService
+	decoder *ipldlegacy.Decoder
 }
 
 func NewDagService(dag ipld.DAGService) *DagService {
 	return &DagService{
-		dag: dag,
+		dag:     dag,
+		decoder: ipldlegacy.NewDecoder(),
 	}
 }
 
@@ -110,7 +112,7 @@ func (s *DagService) DagImport(ctx httpctx.Context) (err error) {
 					return fmt.Errorf("produced block is over 1MiB: big blocks can't be exchanged with other peers. consider using UnixFS for automatic chunking of bigger files, or pass --allow-big-block to override")
 				}
 
-				nd, err := ipldlegacy.DecodeNode(ctx, block)
+				nd, err := s.decoder.DecodeNode(ctx, block)
 				if err != nil {
 					return err
 				}
@@ -137,7 +139,7 @@ func (s *DagService) DagImport(ctx httpctx.Context) (err error) {
 			ret := RootMeta{Cid: c}
 			if block, err := s.dag.Get(ctx, c); err != nil {
 				ret.PinErrorMsg = err.Error()
-			} else if _, err := ipldlegacy.DecodeNode(ctx, block); err != nil {
+			} else if _, err := s.decoder.DecodeNode(ctx, block); err != nil {
 				ret.PinErrorMsg = err.Error()
 			}
 			//todo pinset

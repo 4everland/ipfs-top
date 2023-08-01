@@ -23,21 +23,16 @@ type RoutingService struct {
 	pb.UnimplementedRoutingServer
 	rt routing.Routing
 
-	bprovide   func(rt routing.ContentRouting) provider.Provider
-	breprobide func(rt routing.ContentRouting) provider.Reprovider
-
-	p provider.Provider
-	r provider.Reprovider
+	fn func(rt routing.ContentRouting) (provider.System, error)
+	ps provider.System
 
 	bitSwapService *BitSwapService
 }
 
-func NewRoutingService(bitSwapService *BitSwapService, bprovide func(rt routing.ContentRouting) provider.Provider, breprobide func(rt routing.ContentRouting) provider.Reprovider) *RoutingService {
+func NewRoutingService(bitSwapService *BitSwapService, fn func(rt routing.ContentRouting) (provider.System, error)) *RoutingService {
 	routingServiceOnce.Do(func() {
 		routingService = &RoutingService{
-			bprovide:   bprovide,
-			breprobide: breprobide,
-
+			fn:             fn,
 			bitSwapService: bitSwapService,
 		}
 	})
@@ -49,8 +44,7 @@ func (s *RoutingService) Provide(_ context.Context, req *pb.ProvideReq) (*emptyp
 	if err != nil {
 		return nil, err
 	}
-	err = s.p.Provide(c)
-	return &emptypb.Empty{}, err
+	return &emptypb.Empty{}, s.ps.Provide(c)
 }
 
 func (s *RoutingService) FindProvidersAsync(req *pb.GetProvidersReq, conn pb.Routing_FindProvidersAsyncServer) error {
@@ -179,19 +173,14 @@ func (s *RoutingService) GetBlocks(cids *pb.Cids, resp pb.Routing_GetBlocksServe
 
 }
 
-func (s *RoutingService) Reprovide(ctx context.Context, _ *emptypb.Empty) (*emptypb.Empty, error) {
-	err := s.r.Trigger(ctx)
-	return &emptypb.Empty{}, err
-}
-
 func (s *RoutingService) Watch(_ context.Context, node NodeInterface) {
 	routingServiceWatchOnce.Do(func() {
+		var err error
 		s.rt = node.GetContentRouting()
-
-		s.p = s.bprovide(s.rt)
-		s.r = s.breprobide(s.rt)
-		go s.p.Run()
-		go s.r.Run()
+		s.ps, err = s.fn(s.rt)
+		if err != nil {
+			panic(err)
+		}
 	})
 }
 

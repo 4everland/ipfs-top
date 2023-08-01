@@ -12,7 +12,7 @@ import (
 	"github.com/ipfs/boxo/gateway"
 )
 
-func NewGatewayServer(c *conf.Server, gw *gateway.BlocksGateway, logger log.Logger) *http.Server {
+func NewGatewayServer(c *conf.Server, gw *gateway.BlocksBackend, logger log.Logger) *http.Server {
 	var opts = []http.ServerOption{
 		http.Middleware(
 			recovery.Recovery(),
@@ -37,23 +37,24 @@ func NewGatewayServer(c *conf.Server, gw *gateway.BlocksGateway, logger log.Logg
 
 	gwConf := gateway.Config{
 		Headers: headers,
-	}
-	publicGateways := map[string]*gateway.Specification{
-		// Support public requests with Host: CID.ipfs.example.net and ID.ipns.example.net
-		"example.net": {
-			Paths:         []string{"/ipfs"}, //[]string{"/ipfs", "/ipns"},
-			NoDNSLink:     true,
-			UseSubdomains: true,
+		PublicGateways: map[string]*gateway.PublicGateway{
+			// Support public requests with Host: CID.ipfs.example.net and ID.ipns.example.net
+			"example.net": {
+				Paths:         []string{"/ipfs"}, //[]string{"/ipfs", "/ipns"},
+				NoDNSLink:     true,
+				UseSubdomains: true,
+			},
+			// Support local requests
+			"localhost": {
+				Paths:         []string{"/ipfs"}, //[]string{"/ipfs", "/ipns"},
+				NoDNSLink:     true,
+				UseSubdomains: true,
+			},
 		},
-		// Support local requests
-		"localhost": {
-			Paths:         []string{"/ipfs"}, //[]string{"/ipfs", "/ipns"},
-			NoDNSLink:     true,
-			UseSubdomains: true,
-		},
 	}
+
 	gwHandler := gateway.NewHandler(gwConf, gw)
-	handler := gateway.WithHostname(gwHandler, gw, publicGateways, true)
+	handler := gateway.NewHostnameHandler(gwConf, gw, gwHandler)
 	srv.HandlePrefix("/ipfs/", handler)
 	//srv.HandlePrefix("/ipns/", gwHandler)
 	srv.Route("/ping").GET("/", func(ctx http.Context) error {

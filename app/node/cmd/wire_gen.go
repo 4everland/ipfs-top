@@ -6,11 +6,11 @@
 package main
 
 import (
-	"github.com/4everland/ipfs-servers/app/node/internal/biz/provide"
+	"github.com/4everland/ipfs-servers/app/node/internal/biz"
 	"github.com/4everland/ipfs-servers/app/node/internal/conf"
-	data2 "github.com/4everland/ipfs-servers/app/node/internal/data"
-	server2 "github.com/4everland/ipfs-servers/app/node/internal/server"
-	service2 "github.com/4everland/ipfs-servers/app/node/internal/service"
+	"github.com/4everland/ipfs-servers/app/node/internal/data"
+	"github.com/4everland/ipfs-servers/app/node/internal/server"
+	"github.com/4everland/ipfs-servers/app/node/internal/service"
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"
 )
@@ -23,29 +23,20 @@ import (
 
 // wireApp init task receiver server application.
 func wireApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
-	batching, err := data2.NewLevelDbDatastore(confServer)
+	batching, err := data.NewLevelDbDatastore(confServer)
 	if err != nil {
 		return nil, nil, err
 	}
-	blockstore := data2.NewBlockStore(confData)
-	bitSwapService := service2.NewBitSwapService(blockstore)
-	queue, err := provide.ProviderQueue(batching)
+	blockstore := data.NewBlockStore(confData)
+	bitSwapService := service.NewBitSwapService(blockstore)
+	v := biz.ProviderSystem(batching, blockstore)
+	routingService := service.NewRoutingService(bitSwapService, v)
+	v2 := service.NewNodeServices(bitSwapService, routingService)
+	nodeServer, err := server.NewNodeServer(confServer, logger, batching, v2...)
 	if err != nil {
 		return nil, nil, err
 	}
-	v := provide.SimpleProvider(queue)
-	keyChanFunc := data2.NewKeyChanFunc(blockstore)
-	v2, err := provide.SimpleReprovider(confData, keyChanFunc)
-	if err != nil {
-		return nil, nil, err
-	}
-	routingService := service2.NewRoutingService(bitSwapService, v, v2)
-	v3 := service2.NewNodeServices(bitSwapService, routingService)
-	nodeServer, err := server2.NewNodeServer(confServer, logger, batching, v3...)
-	if err != nil {
-		return nil, nil, err
-	}
-	grpcServer := server2.NewContentRoutingGRPCServer(confServer, routingService, logger)
+	grpcServer := server.NewContentRoutingGRPCServer(confServer, routingService, logger)
 	app := newApp(logger, nodeServer, grpcServer)
 	return app, func() {
 	}, nil

@@ -139,105 +139,97 @@ func (s *PinService) Ls(req *pb.LsReq, server pb.Pin_LsServer) error {
 
 	keys := cid.NewSet()
 
-	AddToResultKeys := func(keyList []cid.Cid, typeStr string) error {
-		for _, c := range keyList {
-			if keys.Visit(c) {
-				select {
-				case <-server.Context().Done():
-					return server.Context().Err()
-				default:
-					server.Send(&pb.PinInfo{
-						PinType: typeStr,
-						Cid:     c.String(),
-					})
-				}
+	AddToResultKeys := func(c cid.Cid, typeStr string) error {
+		if keys.Visit(c) {
+			select {
+			case <-server.Context().Done():
+				return server.Context().Err()
+			default:
+				server.Send(&pb.PinInfo{
+					PinType: typeStr,
+					Cid:     c.String(),
+				})
 			}
 		}
 		return nil
 	}
 
-	VisitKeys := func(keyList []cid.Cid) {
-		for _, c := range keyList {
-			keys.Visit(c)
-		}
-	}
-
 	go func() {
-		var dkeys, rkeys []cid.Cid
-		var err error
+		var (
+			rkeys []cid.Cid
+			err   error
+		)
 		if req.Type == "recursive" || req.Type == "all" {
-			rkeys, err = s.pinning.RecursiveKeys(server.Context())
-			if err != nil {
-				server.Send(&pb.PinInfo{Err: err.Error()})
-				return
-			}
-			if err = AddToResultKeys(rkeys, "recursive"); err != nil {
-				server.Send(&pb.PinInfo{Err: err.Error()})
-				return
+			for streamedCid := range s.pinning.RecursiveKeys(server.Context()) {
+				if streamedCid.Err != nil {
+					server.Send(&pb.PinInfo{Err: streamedCid.Err.Error()})
+					return
+				}
+				if err = AddToResultKeys(streamedCid.C, "recursive"); err != nil {
+					server.Send(&pb.PinInfo{Err: streamedCid.Err.Error()})
+					return
+				}
+				rkeys = append(rkeys, streamedCid.C)
 			}
 		}
 		if req.Type == "direct" || req.Type == "all" {
-			dkeys, err = s.pinning.DirectKeys(server.Context())
-			if err != nil {
-				server.Send(&pb.PinInfo{Err: err.Error()})
-				return
-			}
-			if err = AddToResultKeys(dkeys, "direct"); err != nil {
-				server.Send(&pb.PinInfo{Err: err.Error()})
-				return
-			}
-		}
-		if req.Type == "all" {
-			set := cid.NewSet()
-			for _, k := range rkeys {
-				err = merkledag.Walk(
-					server.Context(), merkledag.GetLinksWithDAG(s.dag), k,
-					set.Visit,
-					merkledag.SkipRoot(), merkledag.Concurrent(),
-				)
-				if err != nil {
-					server.Send(&pb.PinInfo{Err: err.Error()})
+			for streamedCid := range s.pinning.DirectKeys(server.Context()) {
+				if streamedCid.Err != nil {
+					server.Send(&pb.PinInfo{Err: streamedCid.Err.Error()})
 					return
 				}
-			}
-			if err = AddToResultKeys(set.Keys(), "indirect"); err != nil {
-				server.Send(&pb.PinInfo{Err: err.Error()})
-				return
+				if err = AddToResultKeys(streamedCid.C, "direct"); err != nil {
+					server.Send(&pb.PinInfo{Err: streamedCid.Err.Error()})
+					return
+				}
 			}
 		}
 		if req.Type == "indirect" {
 			// We need to first visit the direct pins that have priority
 			// without emitting them
 
-			dkeys, err = s.pinning.DirectKeys(server.Context())
-			if err != nil {
-				server.Send(&pb.PinInfo{Err: err.Error()})
-				return
+			for streamedCid := range s.pinning.DirectKeys(server.Context()) {
+				if streamedCid.Err != nil {
+					server.Send(&pb.PinInfo{Err: streamedCid.Err.Error()})
+					return
+				}
+				keys.Add(streamedCid.C)
 			}
-			VisitKeys(dkeys)
 
-			rkeys, err = s.pinning.RecursiveKeys(server.Context())
-			if err != nil {
-				server.Send(&pb.PinInfo{Err: err.Error()})
-				return
+			for streamedCid := range s.pinning.RecursiveKeys(server.Context()) {
+				if streamedCid.Err != nil {
+					server.Send(&pb.PinInfo{Err: streamedCid.Err.Error()})
+					return
+				}
+				keys.Add(streamedCid.C)
+				rkeys = append(rkeys, streamedCid.C)
 			}
-			VisitKeys(rkeys)
-
-			set := cid.NewSet()
+		}
+		if req.Type == "indirect" || req.Type == "all" {
+			walkingSet := cid.NewSet()
 			for _, k := range rkeys {
 				err = merkledag.Walk(
 					server.Context(), merkledag.GetLinksWithDAG(s.dag), k,
-					set.Visit,
+					func(c cid.Cid) bool {
+						if !walkingSet.Visit(c) {
+							return false
+						}
+						if keys.Has(c) {
+							return true // skipped
+						}
+						err := AddToResultKeys(c, "indirect")
+						if err != nil {
+							server.Send(&pb.PinInfo{Err: err.Error()})
+							return false
+						}
+						return true
+					},
 					merkledag.SkipRoot(), merkledag.Concurrent(),
 				)
 				if err != nil {
 					server.Send(&pb.PinInfo{Err: err.Error()})
 					return
 				}
-			}
-			if err = AddToResultKeys(set.Keys(), "indirect"); err != nil {
-				server.Send(&pb.PinInfo{Err: err.Error()})
-				return
 			}
 		}
 	}()

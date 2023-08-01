@@ -8,8 +8,8 @@ import (
 	"github.com/ipfs/boxo/gateway"
 )
 
-func NewBlocksGateway(blockStore blockstore.Blockstore) (*gateway.BlocksGateway, error) {
-	return gateway.NewBlocksGateway(blockservice.New(blockStore, nil))
+func NewBlocksGateway(blockStore blockstore.Blockstore) (*gateway.BlocksBackend, error) {
+	return gateway.NewBlocksBackend(blockservice.New(blockStore, nil))
 }
 
 func NewBlockStore(config *conf.Data) blockstore.Blockstore {

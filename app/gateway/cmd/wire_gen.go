@@ -22,11 +22,11 @@ import (
 // wireApp init task receiver server application.
 func wireApp(confServer *conf.Server, data *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
 	blockstore := service.NewBlockStore(data)
-	blocksGateway, err := service.NewBlocksGateway(blockstore)
+	blocksBackend, err := service.NewBlocksGateway(blockstore)
 	if err != nil {
 		return nil, nil, err
 	}
-	httpServer := server.NewGatewayServer(confServer, blocksGateway, logger)
+	httpServer := server.NewGatewayServer(confServer, blocksBackend, logger)
 	app := newApp(logger, httpServer)
 	return app, func() {
 	}, nil

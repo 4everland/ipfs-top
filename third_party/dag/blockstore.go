@@ -3,6 +3,7 @@ package dag
 import (
 	"context"
 	pb "github.com/4everland/ipfs-servers/api/blockstore"
+	"github.com/ipfs/boxo/blockstore"
 	"github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -26,7 +27,7 @@ func unWrapperError(err error) error {
 	return err
 }
 
-func NewBlockStore(endpoint, cert string) (*grpcBlockstore, error) {
+func NewBlockStore(endpoint, cert string) (blockstore.Blockstore, error) {
 	var o []grpc.DialOption
 	if cert == "" {
 		o = append(o, grpc.WithTransportCredentials(insecure.NewCredentials()))

@@ -8,15 +8,16 @@ require (
 	github.com/go-kratos/kratos/v2 v2.5.4
 	github.com/google/wire v0.5.0
 	github.com/hashicorp/golang-lru v0.5.4
-	github.com/ipfs/boxo v0.8.0
+	github.com/ipfs/boxo v0.11.0
 	github.com/ipfs/go-block-format v0.1.2
 	github.com/ipfs/go-cid v0.4.1
 	github.com/ipfs/go-datastore v0.6.0
 	github.com/ipfs/go-ds-leveldb v0.5.0
 	github.com/ipfs/go-ipfs-cmds v0.9.0
-	github.com/ipfs/go-ipld-format v0.4.0
-	github.com/ipfs/go-ipld-legacy v0.1.1
-	github.com/ipfs/go-unixfsnode v1.6.0
+	github.com/ipfs/go-ipld-format v0.5.0
+	github.com/ipfs/go-ipld-legacy v0.2.1
+	github.com/ipfs/go-unixfsnode v1.7.1
+	github.com/ipld/go-car/v2 v2.10.2-0.20230622090957-499d0c909d33
 	github.com/ipld/go-codec-dagpb v1.6.0
 	github.com/ipld/go-ipld-prime v0.20.0
 	github.com/libp2p/go-libp2p v0.27.1
@@ -24,7 +25,7 @@ require (
 	github.com/libp2p/go-libp2p-record v0.2.0
 	github.com/multiformats/go-multiaddr v0.9.0
 	github.com/multiformats/go-multiaddr-dns v0.3.1
-	github.com/multiformats/go-multihash v0.2.1
+	github.com/multiformats/go-multihash v0.2.3
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/tikv/client-go/v2 v2.0.5
 	go.uber.org/automaxprocs v1.5.1
@@ -36,8 +37,6 @@ require (
 	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137 // indirect
 	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
-	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/containerd/cgroups v1.1.0 // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect
@@ -72,6 +71,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.1.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
+	github.com/hashicorp/golang-lru/v2 v2.0.2 // indirect
 	github.com/huin/goupnp v1.1.0 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/ipfs/bbloom v0.0.4 // indirect
@@ -99,7 +99,7 @@ require (
 	github.com/libp2p/go-flow-metrics v0.1.0 // indirect
 	github.com/libp2p/go-libp2p-asn-util v0.3.0 // indirect
 	github.com/libp2p/go-libp2p-kbucket v0.5.0 // indirect
-	github.com/libp2p/go-libp2p-routing-helpers v0.4.0 // indirect
+	github.com/libp2p/go-libp2p-routing-helpers v0.7.0 // indirect
 	github.com/libp2p/go-msgio v0.3.0 // indirect
 	github.com/libp2p/go-nat v0.1.0 // indirect
 	github.com/libp2p/go-netroute v0.2.1 // indirect
@@ -117,13 +117,14 @@ require (
 	github.com/multiformats/go-base36 v0.2.0 // indirect
 	github.com/multiformats/go-multiaddr-fmt v0.1.0 // indirect
 	github.com/multiformats/go-multibase v0.2.0 // indirect
-	github.com/multiformats/go-multicodec v0.8.1 // indirect
+	github.com/multiformats/go-multicodec v0.9.0 // indirect
 	github.com/multiformats/go-multistream v0.4.1 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/onsi/ginkgo/v2 v2.9.2 // indirect
 	github.com/opencontainers/runtime-spec v1.0.2 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
+	github.com/petar/GoLLRB v0.0.0-20210522233825-ae3b015fd3e9 // indirect
 	github.com/pingcap/errors v0.11.5-0.20211224045212-9687c2b0f87c // indirect
 	github.com/pingcap/failpoint v0.0.0-20210918120811-547c13e3eb00 // indirect
 	github.com/pingcap/kvproto v0.0.0-20230201112839-2b853bed8125 // indirect
@@ -150,6 +151,7 @@ require (
 	github.com/twmb/murmur3 v1.1.3 // indirect
 	github.com/ucarion/urlpath v0.0.0-20200424170820-7ccc79b76bbb // indirect
 	github.com/whyrusleeping/base32 v0.0.0-20170828182744-c30ac30633cc // indirect
+	github.com/whyrusleeping/cbor v0.0.0-20171005072247-63513f603b11 // indirect
 	github.com/whyrusleeping/cbor-gen v0.0.0-20230126041949-52956bd4c9aa // indirect
 	github.com/whyrusleeping/chunker v0.0.0-20181014151217-fe64bd25879f // indirect
 	github.com/whyrusleeping/go-keyspace v0.0.0-20160322163242-5b898ac5add1 // indirect
