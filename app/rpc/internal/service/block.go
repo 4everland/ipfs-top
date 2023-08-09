@@ -1,11 +1,14 @@
 package service
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"github.com/4everland/ipfs-servers/third_party/coreunix"
 	httpctx "github.com/go-kratos/kratos/v2/transport/http"
 	"github.com/ipfs/boxo/blockservice"
 	"github.com/ipfs/boxo/coreiface/options"
+	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/files"
 	blocks "github.com/ipfs/go-block-format"
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -17,17 +20,20 @@ import (
 )
 
 type BlocksService struct {
-	bs blockservice.BlockService
+	bs          blockservice.BlockService
+	dagResolver coreunix.DagResolve
 }
 
-func NewBlocksService(bs blockservice.BlockService) *BlocksService {
+func NewBlocksService(bs blockservice.BlockService, dagResolver coreunix.DagResolve) *BlocksService {
 	return &BlocksService{
-		bs: bs,
+		bs:          bs,
+		dagResolver: dagResolver,
 	}
 }
 
 func (s *BlocksService) RegisterRoute(route *httpctx.Router) {
 	route.POST("/block/put", s.BlockPut)
+	route.POST("/block/get", s.BlockGet)
 }
 
 type BlockPutRequest struct {
@@ -149,4 +155,36 @@ func (s *BlocksService) BlockPut(ctx httpctx.Context) (err error) {
 type BlockStat struct {
 	Key  string
 	Size int
+}
+
+type BlockGetRequest struct {
+	Arg string `json:"arg,omitempty"`
+}
+
+func (s *BlocksService) BlockGet(ctx httpctx.Context) (err error) {
+	res, err := http2.NewResponseEmitter(ctx.Response(), ctx.Request().Method, &cmds.Request{
+		Options: cmds.OptMap{cmds.EncLong: cmds.JSON},
+		Context: ctx,
+	})
+
+	var req BlockGetRequest
+	if err = ctx.BindQuery(&req); err != nil {
+		return
+	}
+
+	if req.Arg == "" {
+		return errors.New("argument \"arg\" is required")
+	}
+
+	rp, err := s.dagResolver.ResolvePath(ctx, path.New(req.Arg))
+	if err != nil {
+		return err
+	}
+
+	b, err := s.bs.GetBlock(ctx, rp.Cid())
+	if err != nil {
+		return err
+	}
+
+	return res.Emit(bytes.NewReader(b.RawData()))
 }

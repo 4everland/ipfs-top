@@ -211,6 +211,8 @@ func (api *UnixFsServer) Ls(ctx context.Context, p path.Path, opts ...options.Un
 type dagResolver struct {
 	dag                  format.DAGService
 	unixFSFetcherFactory fetcher.Factory
+	ipldPathResolver     ipfspathresolver.Resolver
+	unixFSPathResolver   ipfspathresolver.Resolver
 }
 
 func NewDagResolver(ctx context.Context, d format.NodeGetter, b blockservice.BlockService) *dagResolver {
@@ -224,10 +226,12 @@ func newDagResolver(ctx context.Context, d format.NodeGetter, b blockservice.Blo
 		}
 		return basicnode.Prototype.Any, nil
 	})
-	//fetcher := fetcherConfig.WithReifier(unixfsnode.Reify)
+	fsFetcher := fetcherConfig.WithReifier(unixfsnode.Reify)
 	return &dagResolver{
 		dag:                  merkledag.NewReadOnlyDagService(merkledag.NewSession(ctx, d)),
-		unixFSFetcherFactory: fetcherConfig.WithReifier(unixfsnode.Reify),
+		unixFSFetcherFactory: fsFetcher,
+		ipldPathResolver:     ipfspathresolver.NewBasicResolver(fetcherConfig),
+		unixFSPathResolver:   ipfspathresolver.NewBasicResolver(fsFetcher),
 	}
 }
 
@@ -241,11 +245,16 @@ func (dr *dagResolver) ResolvePath(ctx context.Context, p path.Path) (path.Resol
 
 	ipath := ipfspath.Path(p.String())
 	//if ipath.Segments()[0] != "ipfs" && ipath.Segments()[0] != "ipld" {
-	if ipath.Segments()[0] != "ipfs" {
+	if ipath.Segments()[0] != "ipfs" && ipath.Segments()[0] != "ipld" {
 		return nil, fmt.Errorf("unsupported path namespace: %s", p.Namespace())
 	}
 
-	resolver := ipfspathresolver.NewBasicResolver(dr.unixFSFetcherFactory)
+	var resolver ipfspathresolver.Resolver
+	if ipath.Segments()[0] == "ipld" {
+		resolver = dr.ipldPathResolver
+	} else {
+		resolver = dr.unixFSPathResolver
+	}
 
 	node, rest, err := resolver.ResolveToLastNode(ctx, ipath)
 	if err != nil {

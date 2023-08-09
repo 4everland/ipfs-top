@@ -38,7 +38,7 @@ func wireApp(confServer *conf.Server, data *conf.Data, version *conf.Version, lo
 	versionInfo := service.NewVersionInfo(version)
 	versionService := service.NewVersionService(versionInfo)
 	serviceDagService := service.NewDagService(dagService, dagResolve)
-	blocksService := service.NewBlocksService(blockService)
+	blocksService := service.NewBlocksService(blockService, dagResolve)
 	httpServer := server.NewApiHttpServer(confServer, adderService, pinService, lsService, filesService, catService, versionService, serviceDagService, blocksService, logger)
 	app := newApp(logger, httpServer)
 	return app, func() {
