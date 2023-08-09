@@ -3,7 +3,9 @@ package service
 import (
 	"errors"
 	"fmt"
+	"github.com/4everland/ipfs-servers/third_party/coreunix"
 	httpctx "github.com/go-kratos/kratos/v2/transport/http"
+	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/files"
 	"github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -11,6 +13,10 @@ import (
 	ipld "github.com/ipfs/go-ipld-format"
 	ipldlegacy "github.com/ipfs/go-ipld-legacy"
 	gocarv2 "github.com/ipld/go-car/v2"
+	ipldp "github.com/ipld/go-ipld-prime"
+	"github.com/ipld/go-ipld-prime/multicodec"
+	"github.com/ipld/go-ipld-prime/traversal"
+	mc "github.com/multiformats/go-multicodec"
 	"io"
 	"mime"
 	"mime/multipart"
@@ -18,19 +24,22 @@ import (
 )
 
 type DagService struct {
-	dag     ipld.DAGService
-	decoder *ipldlegacy.Decoder
+	dag         ipld.DAGService
+	dagResolver coreunix.DagResolve
+	decoder     *ipldlegacy.Decoder
 }
 
-func NewDagService(dag ipld.DAGService) *DagService {
+func NewDagService(dag ipld.DAGService, resolver coreunix.DagResolve) *DagService {
 	return &DagService{
-		dag:     dag,
-		decoder: ipldlegacy.NewDecoder(),
+		dag:         dag,
+		dagResolver: resolver,
+		decoder:     ipldlegacy.NewDecoder(),
 	}
 }
 
 func (s *DagService) RegisterRoute(route *httpctx.Router) {
 	route.POST("/dag/import", s.DagImport)
+	route.POST("/dag/get", s.DagGet)
 }
 
 type DagImportRequest struct {
@@ -176,8 +185,77 @@ type CarImportStats struct {
 	BlockBytesCount uint64
 }
 
-// CarImportOutput is the output type of the 'dag import' commands
 type CarImportOutput struct {
 	Root  *RootMeta       `json:",omitempty"`
 	Stats *CarImportStats `json:",omitempty"`
+}
+
+type DagGetRequest struct {
+	Arg         string `json:"arg,omitempty"`
+	OutputCodec string `json:"output-codec,omitempty"`
+}
+
+func (s *DagService) DagGet(ctx httpctx.Context) (err error) {
+	w := ctx.Response()
+	res, err := http2.NewResponseEmitter(ctx.Response(), ctx.Request().Method, &cmds.Request{
+		Options: cmds.OptMap{cmds.EncLong: cmds.JSON},
+		Context: ctx,
+	})
+
+	var req DagGetRequest
+	if err = ctx.BindQuery(&req); err != nil {
+		return
+	}
+	if req.Arg == "" {
+		return errors.New("argument \"arg\" is required")
+	}
+
+	if req.OutputCodec == "" {
+		req.OutputCodec = "dag-json"
+	}
+	var codec mc.Code
+	if err := codec.Set(req.OutputCodec); err != nil {
+		return err
+	}
+
+	rp, err := s.dagResolver.ResolvePath(ctx, path.New(req.Arg))
+	if err != nil {
+		return err
+	}
+
+	obj, err := s.dag.Get(ctx, rp.Cid())
+	if err != nil {
+		return err
+	}
+
+	universal, ok := obj.(ipldlegacy.UniversalNode)
+	if !ok {
+		return fmt.Errorf("%T is not a valid IPLD node", obj)
+	}
+
+	finalNode := universal.(ipldp.Node)
+
+	if len(rp.Remainder()) > 0 {
+		remainderPath := ipldp.ParsePath(rp.Remainder())
+
+		finalNode, err = traversal.Get(finalNode, remainderPath)
+		if err != nil {
+			return err
+		}
+	}
+
+	encoder, err := multicodec.LookupEncoder(uint64(codec))
+	if err != nil {
+		return fmt.Errorf("invalid encoding: %s - %s", codec, err)
+	}
+
+	r, wr := io.Pipe()
+	go func() {
+		defer wr.Close()
+		if err := encoder(finalNode, w); err != nil {
+			_ = wr.CloseWithError(err)
+		}
+	}()
+
+	return res.Emit(r)
 }

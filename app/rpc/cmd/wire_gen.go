@@ -37,7 +37,7 @@ func wireApp(confServer *conf.Server, data *conf.Data, version *conf.Version, lo
 	catService := service.NewCatService(unixFsServer)
 	versionInfo := service.NewVersionInfo(version)
 	versionService := service.NewVersionService(versionInfo)
-	serviceDagService := service.NewDagService(dagService)
+	serviceDagService := service.NewDagService(dagService, dagResolve)
 	blocksService := service.NewBlocksService(blockService)
 	httpServer := server.NewApiHttpServer(confServer, adderService, pinService, lsService, filesService, catService, versionService, serviceDagService, blocksService, logger)
 	app := newApp(logger, httpServer)
