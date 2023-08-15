@@ -16,6 +16,8 @@ data:
     tikv:
       addrs:
         - 127.0.0.1:2379
+    pg:
+      dsn: host=127.0.0.1 user=postgres password=password dbname=ipfs port=5432 sslmode=disable TimeZone=UTC
   cache:
     lruSize: 64
     basePath: "./cache"

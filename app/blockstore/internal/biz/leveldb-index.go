@@ -20,14 +20,14 @@ func wrapperError(err error) error {
 	return err
 }
 
-func NewLevelDb(path string) BlockIndex {
+func NewLevelDb(path string) (BlockIndex, error) {
 	db, err := leveldb.OpenFile(path, nil)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	return &LevelDbIndexStore{
 		db: db,
-	}
+	}, nil
 }
 
 func (lis *LevelDbIndexStore) Put(ctx context.Context, cid string, v IndexValue) error {

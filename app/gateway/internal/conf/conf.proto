@@ -20,7 +20,32 @@ message Server {
 }
 
 message Data {
-  string blockstore_uri = 1;
-  string blockstore_cert = 2;
+  oneof blockstore {
+    ReadOnlyBlockstore ro = 1;
+    Blockstore rw = 2;
+  }
 }
 
+message ReadOnlyBlockstore {
+  S3 storage = 1;
+  Cache cache = 2;
+}
+
+message Blockstore {
+  string uri = 1;
+  string cert = 2;
+}
+
+message Cache {
+  int64 lruSize = 1;
+  string basePath = 2;
+  string indexPath = 3;
+}
+
+message S3 {
+  string endpoint = 1;
+  string region = 2;
+  string bucket = 3;
+  string accessKey = 4;
+  string secretKey = 5;
+}

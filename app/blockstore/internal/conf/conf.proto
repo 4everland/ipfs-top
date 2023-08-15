@@ -23,6 +23,7 @@ message Data {
   enum DBType {
     LevelDB = 0;
     TiKV = 1;
+    PG = 2;
   }
 
   message S3 {
@@ -42,9 +43,14 @@ message Data {
       repeated string addrs = 1;
     }
 
+    message Pg {
+      string dsn = 1;
+    }
+
     DBType type = 1;
     LevelDB leveldb = 2;
     TiKV tikv = 3;
+    Pg pg = 4;
   }
 
   message Cache {

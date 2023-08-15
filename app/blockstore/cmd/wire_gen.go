@@ -6,7 +6,7 @@
 package main
 
 import (
-	biz2 "github.com/4everland/ipfs-servers/app/blockstore/internal/biz"
+	"github.com/4everland/ipfs-servers/app/blockstore/internal/biz"
 	"github.com/4everland/ipfs-servers/app/blockstore/internal/conf"
 	"github.com/4everland/ipfs-servers/app/blockstore/internal/server"
 	"github.com/4everland/ipfs-servers/app/blockstore/internal/services"
@@ -22,8 +22,11 @@ import (
 
 // wireApp init task receiver server application.
 func wireApp(confServer *conf.Server, data *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
-	blockStore := biz2.NewBackendStorage(data, logger)
-	blockIndex := biz2.NewIndexStore(data)
+	blockStore := biz.NewBackendStorage(data, logger)
+	blockIndex, err := biz.NewIndexStore(data)
+	if err != nil {
+		return nil, nil, err
+	}
 	blockstoreService := services.NewBlockstoreService(blockStore, blockIndex)
 	grpcServer := server.NewGRPCServer(confServer, blockstoreService, logger)
 	app := newApp(logger, grpcServer)

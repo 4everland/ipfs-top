@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
-	"github.com/4everland/ipfs-servers/app/blockstore/internal/conf"
 )
 
 const (
@@ -66,17 +65,4 @@ func (iv IndexValue) Size() (size uint32, cumulativeSize uint64) {
 
 func (iv IndexValue) OffSet() (start, end uint32) {
 	return iv.offsetStart, iv.offsetStart + iv.size
-}
-
-func NewIndexStore(data *conf.Data) BlockIndex {
-	if data.GetDb().GetType() == conf.Data_TiKV {
-		db, err := NewTiKv(data.GetDb().GetTikv().GetAddrs()...)
-		if err != nil {
-			panic(err)
-		}
-
-		return db
-	}
-
-	return NewLevelDb(data.GetDb().GetLeveldb().GetPath())
 }
