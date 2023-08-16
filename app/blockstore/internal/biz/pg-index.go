@@ -11,7 +11,7 @@ import (
 const numberOfShards = 64
 
 type PgIndexValue struct {
-	Cid  string
+	Cid  string `gorm:"primarykey;column:id"`
 	Size uint32
 }
 
@@ -25,10 +25,10 @@ type PgIndexStore struct {
 
 func NewPg(db *gorm.DB) (BlockIndex, error) {
 	middleware := sharding.Register(sharding.Config{
-		ShardingKey:         "cid",
+		ShardingKey:         "id",
 		NumberOfShards:      numberOfShards,
 		PrimaryKeyGenerator: sharding.PKSnowflake,
-	}, "orders")
+	}, PgIndexValue{})
 	if err := db.Use(middleware); err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func (pg *PgIndexStore) Put(ctx context.Context, cid string, v IndexValue) error
 }
 
 func (pg *PgIndexStore) Has(ctx context.Context, cid string) (bool, error) {
-	if err := pg.db.WithContext(ctx).First(&PgIndexValue{}, cid).Error; err != nil {
+	if err := pg.db.WithContext(ctx).First(&PgIndexValue{}, "id = ?", cid).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return false, nil
 		}
@@ -55,12 +55,12 @@ func (pg *PgIndexStore) Has(ctx context.Context, cid string) (bool, error) {
 }
 
 func (pg *PgIndexStore) Delete(ctx context.Context, cid string) error {
-	return pg.db.WithContext(ctx).Delete(&PgIndexValue{}, cid).Error
+	return pg.db.WithContext(ctx).Delete(&PgIndexValue{}, "id = ?", cid).Error
 }
 
 func (pg *PgIndexStore) Get(ctx context.Context, cid string) (*IndexValue, error) {
 	var v PgIndexValue
-	if err := pg.db.WithContext(ctx).First(&v, cid).Error; err != nil {
+	if err := pg.db.WithContext(ctx).First(&v, "id = ?", cid).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, ipld.ErrNotFound{}
 		}
@@ -84,11 +84,11 @@ func (pg *PgIndexStore) List(ctx context.Context) <-chan string {
 		)
 
 		for i := 0; i < numberOfShards; i++ {
-			tableName = fmt.Sprintf("%s_%d", PgIndexValue{}.TableName(), i)
+			tableName = fmt.Sprintf("%s_%02d", PgIndexValue{}.TableName(), i)
 			startKey = ""
 			for {
-				if err := pg.db.WithContext(ctx).Table(tableName).Where("cid > ? COLLATE \"C\"", startKey).Select("cid").
-					Order("cid COLLATE \"C\" ASC").Find(&data).Error; err != nil || len(data) == 0 {
+				if err := pg.db.WithContext(ctx).Table(tableName).Where("id > ? COLLATE \"C\"", startKey).Select("id").
+					Order("id COLLATE \"C\" ASC").Find(&data).Error; err != nil || len(data) == 0 {
 					break
 				}
 
