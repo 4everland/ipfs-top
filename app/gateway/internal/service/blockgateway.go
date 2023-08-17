@@ -18,7 +18,7 @@ func NewBlockStore(config *conf.Data, logger log.Logger) blockstore.Blockstore {
 	if config.GetRo() != nil {
 		return biz.NewS3readOnlyS3blockStore(config, logger)
 	}
-	s, err := dag.NewBlockStore(config.GetRw().GetUri(), config.GetRw().GetUri())
+	s, err := dag.NewBlockStore(config.GetRw().GetUri(), config.GetRw().GetCert())
 	if err != nil {
 		panic(err)
 	}

@@ -48,7 +48,7 @@ func NewApiHttpServer(
 
 	r := srv.Route("/api/v0")
 	s.RegisterRoute(r)
-	ps.RegisterRoute(r)
+	//ps.RegisterRoute(r)
 	ls.RegisterRoute(r)
 	fs.RegisterRoute(r)
 	cs.RegisterRoute(r)

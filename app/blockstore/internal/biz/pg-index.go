@@ -45,7 +45,7 @@ func (pg *PgIndexStore) Put(ctx context.Context, cid string, v IndexValue) error
 }
 
 func (pg *PgIndexStore) Has(ctx context.Context, cid string) (bool, error) {
-	if err := pg.db.WithContext(ctx).First(&PgIndexValue{}, "id = ?", cid).Error; err != nil {
+	if err := pg.db.WithContext(ctx).Select("id").Take(&PgIndexValue{}, "id = ?", cid).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return false, nil
 		}
@@ -60,7 +60,7 @@ func (pg *PgIndexStore) Delete(ctx context.Context, cid string) error {
 
 func (pg *PgIndexStore) Get(ctx context.Context, cid string) (*IndexValue, error) {
 	var v PgIndexValue
-	if err := pg.db.WithContext(ctx).First(&v, "id = ?", cid).Error; err != nil {
+	if err := pg.db.WithContext(ctx).Select([]string{"id", "size"}).Take(&v, "id = ?", cid).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, ipld.ErrNotFound{}
 		}

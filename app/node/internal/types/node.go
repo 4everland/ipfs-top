@@ -13,6 +13,5 @@ type ConnectPeer struct {
 }
 
 func (cp ConnectPeer) String() string {
-
 	return fmt.Sprintf("%-59s, direct: %s, local: %s, remote: %s", cp.Id, cp.Network.Direction, cp.Local, cp.Addr)
 }
