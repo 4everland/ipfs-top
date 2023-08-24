@@ -38,6 +38,9 @@ func NewS3readOnlyS3blockStore(data *conf.Data, logger log.Logger) blockstore.Bl
 }
 
 func (bs *readOnlyS3blockStore) Get(ctx context.Context, c cid.Cid) (block blocks.Block, err error) {
+	if c.Version() == 0 {
+		c = cid.NewCidV1(cid.DagProtobuf, c.Hash())
+	}
 	key := c.String()
 	var r io.ReadCloser
 	if r, err = bs.c.ReadStream(key, true); err == nil {

@@ -36,7 +36,8 @@ func NewGatewayServer(c *conf.Server, gw *gateway.BlocksBackend, logger log.Logg
 	gateway.AddAccessControlHeaders(headers)
 
 	gwConf := gateway.Config{
-		Headers: headers,
+		Headers:               headers,
+		DeserializedResponses: true,
 		PublicGateways: map[string]*gateway.PublicGateway{
 			// Support public requests with Host: CID.ipfs.example.net and ID.ipns.example.net
 			"example.net": {
