@@ -11,6 +11,7 @@ import (
 	"github.com/ipfs/boxo/blockstore"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
+	format "github.com/ipfs/go-ipld-format"
 	"io"
 	"os"
 )
@@ -22,9 +23,6 @@ type readOnlyS3blockStore struct {
 }
 
 func NewS3readOnlyS3blockStore(data *conf.Data, logger log.Logger) blockstore.Blockstore {
-	if data.GetRo().GetCache() == nil {
-		return &readOnlyS3blockStore{s3Client: s3client.NewS3Client(data.GetRo().GetStorage())}
-	}
 	return &readOnlyS3blockStore{
 		s3Client: s3client.NewS3Client(data.GetRo().GetStorage()),
 		c: diskv.New(diskv.Options{
@@ -42,15 +40,16 @@ func (bs *readOnlyS3blockStore) Get(ctx context.Context, c cid.Cid) (block block
 		c = cid.NewCidV1(cid.DagProtobuf, c.Hash())
 	}
 	key := c.String()
-	var r io.ReadCloser
-	if r, err = bs.c.ReadStream(key, true); err == nil {
-		return
+
+	if b, err := bs.c.Read(key); err == nil {
+		return blocks.NewBlockWithCid(b, c)
 	} else if !errors.Is(err, os.ErrNotExist) {
 		bs.log.Error("get disk cache error:", err)
 	}
 
+	var r io.ReadCloser
 	if r, err = bs.s3Client.Get(ctx, key); err != nil {
-		return
+		return nil, format.ErrNotFound{}
 	}
 
 	defer r.Close()

@@ -7,14 +7,17 @@ import (
 	httpctx "github.com/go-kratos/kratos/v2/transport/http"
 	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/files"
+	"github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	http2 "github.com/ipfs/go-ipfs-cmds/http"
 	ipld "github.com/ipfs/go-ipld-format"
 	ipldlegacy "github.com/ipfs/go-ipld-legacy"
 	gocarv2 "github.com/ipld/go-car/v2"
+	dagpb "github.com/ipld/go-codec-dagpb"
 	ipldp "github.com/ipld/go-ipld-prime"
 	"github.com/ipld/go-ipld-prime/multicodec"
+	"github.com/ipld/go-ipld-prime/node/basicnode"
 	"github.com/ipld/go-ipld-prime/traversal"
 	mc "github.com/multiformats/go-multicodec"
 	"io"
@@ -30,6 +33,9 @@ type DagService struct {
 }
 
 func NewDagService(dag ipld.DAGService, resolver coreunix.DagResolve) *DagService {
+	d := ipldlegacy.NewDecoder()
+	d.RegisterCodec(cid.DagProtobuf, dagpb.Type.PBNode, merkledag.ProtoNodeConverter)
+	d.RegisterCodec(cid.Raw, basicnode.Prototype.Bytes, merkledag.RawNodeConverter)
 	return &DagService{
 		dag:         dag,
 		dagResolver: resolver,

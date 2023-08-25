@@ -16,6 +16,9 @@ func NewBlocksGateway(blockStore blockstore.Blockstore) (*gateway.BlocksBackend,
 
 func NewBlockStore(config *conf.Data, logger log.Logger) blockstore.Blockstore {
 	if config.GetRo() != nil {
+		if config.GetRo().GetCache() == nil {
+			panic("cache not config")
+		}
 		return biz.NewS3readOnlyS3blockStore(config, logger)
 	}
 	s, err := dag.NewBlockStore(config.GetRw().GetUri(), config.GetRw().GetCert())
