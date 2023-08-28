@@ -41,9 +41,10 @@ func NewGatewayServer(c *conf.Server, gw *gateway.BlocksBackend, logger log.Logg
 		PublicGateways: map[string]*gateway.PublicGateway{
 			// Support public requests with Host: CID.ipfs.example.net and ID.ipns.example.net
 			"example.net": {
-				Paths:         []string{"/ipfs"}, //[]string{"/ipfs", "/ipns"},
-				NoDNSLink:     true,
-				UseSubdomains: true,
+				Paths:                 []string{"/ipfs"}, //[]string{"/ipfs", "/ipns"},
+				NoDNSLink:             true,
+				UseSubdomains:         true,
+				DeserializedResponses: true,
 			},
 			// Support local requests
 			"localhost": {
@@ -57,6 +58,8 @@ func NewGatewayServer(c *conf.Server, gw *gateway.BlocksBackend, logger log.Logg
 	gwHandler := gateway.NewHandler(gwConf, gw)
 	handler := gateway.NewHostnameHandler(gwConf, gw, gwHandler)
 	srv.HandlePrefix("/ipfs/", handler)
+	srv.HandlePrefix("/", handler)
+
 	//srv.HandlePrefix("/ipns/", gwHandler)
 	srv.Route("/ping").GET("/", func(ctx http.Context) error {
 		//Hello from IPFS Gateway Checker
