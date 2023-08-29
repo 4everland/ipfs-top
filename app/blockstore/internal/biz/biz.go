@@ -25,6 +25,7 @@ func NewIndexStore(data *conf.Data) (BlockIndex, error) {
 				LogLevel:                  logger.Warn,
 				IgnoreRecordNotFoundError: true,
 			}),
+			SkipDefaultTransaction: true,
 		})
 		if err != nil {
 			return nil, err
