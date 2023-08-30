@@ -41,8 +41,8 @@ func NewIndexStore(data *conf.Data) (BlockIndex, error) {
 		dsn = data.GetDb().GetPg().GetReplicasDsn()
 		if len(dsn) > 0 {
 			replicasDials := make([]gorm.Dialector, len(dsn))
-			for i, dsn := range data.GetDb().GetPg().GetSourcesDsn() {
-				replicasDials[i] = postgres.Open(dsn)
+			for i, s := range dsn {
+				replicasDials[i] = postgres.Open(s)
 			}
 			if err = d.Use(dbresolver.Register(dbresolver.Config{
 				Sources:           sourceDials,
