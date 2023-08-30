@@ -6,7 +6,6 @@ import (
 	ipld "github.com/ipfs/go-ipld-format"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"gorm.io/sharding"
 )
 
 const numberOfShards = 64
@@ -25,14 +24,6 @@ type PgIndexStore struct {
 }
 
 func NewPg(db *gorm.DB) (BlockIndex, error) {
-	middleware := sharding.Register(sharding.Config{
-		ShardingKey:         "id",
-		NumberOfShards:      numberOfShards,
-		PrimaryKeyGenerator: sharding.PKSnowflake,
-	}, PgIndexValue{})
-	if err := db.Use(middleware); err != nil {
-		return nil, err
-	}
 	return &PgIndexStore{
 		db: db,
 	}, nil

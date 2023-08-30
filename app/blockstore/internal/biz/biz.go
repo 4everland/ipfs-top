@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"gorm.io/plugin/dbresolver"
+	"gorm.io/sharding"
 	"log"
 	"os"
 	"time"
@@ -35,6 +36,15 @@ func NewIndexStore(data *conf.Data) (BlockIndex, error) {
 			SkipDefaultTransaction: true,
 		})
 		if err != nil {
+			return nil, err
+		}
+
+		middleware := sharding.Register(sharding.Config{
+			ShardingKey:         "id",
+			NumberOfShards:      numberOfShards,
+			PrimaryKeyGenerator: sharding.PKSnowflake,
+		}, PgIndexValue{})
+		if err := d.Use(middleware); err != nil {
 			return nil, err
 		}
 
