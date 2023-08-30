@@ -44,7 +44,8 @@ message Data {
     }
 
     message Pg {
-      string dsn = 1;
+      repeated string sourcesDsn = 1;
+      repeated string replicasDsn = 2;
     }
 
     DBType type = 1;

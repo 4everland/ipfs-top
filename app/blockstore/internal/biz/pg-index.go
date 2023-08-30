@@ -5,6 +5,7 @@ import (
 	"fmt"
 	ipld "github.com/ipfs/go-ipld-format"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"gorm.io/sharding"
 )
 
@@ -38,7 +39,7 @@ func NewPg(db *gorm.DB) (BlockIndex, error) {
 }
 
 func (pg *PgIndexStore) Put(ctx context.Context, cid string, v IndexValue) error {
-	return pg.db.WithContext(ctx).Create(&PgIndexValue{
+	return pg.db.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&PgIndexValue{
 		Cid:  cid,
 		Size: v.size,
 	}).Error

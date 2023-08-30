@@ -6,6 +6,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"gorm.io/plugin/dbresolver"
 	"log"
 	"os"
 	"time"
@@ -19,7 +20,13 @@ func NewIndexStore(data *conf.Data) (BlockIndex, error) {
 	case conf.Data_TiKV:
 		return NewTiKv(data.GetDb().GetTikv().GetAddrs()...)
 	case conf.Data_PG:
-		d, err := gorm.Open(postgres.Open(data.GetDb().GetPg().GetDsn()), &gorm.Config{
+		dsn := data.GetDb().GetPg().GetSourcesDsn()
+		sourceDials := make([]gorm.Dialector, len(dsn))
+		for i, dsn := range data.GetDb().GetPg().GetSourcesDsn() {
+			sourceDials[i] = postgres.Open(dsn)
+		}
+
+		d, err := gorm.Open(sourceDials[0], &gorm.Config{
 			Logger: logger.New(log.New(os.Stdout, "\r\n", log.LstdFlags), logger.Config{
 				SlowThreshold:             200 * time.Millisecond,
 				LogLevel:                  logger.Warn,
@@ -30,6 +37,22 @@ func NewIndexStore(data *conf.Data) (BlockIndex, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		dsn = data.GetDb().GetPg().GetReplicasDsn()
+		if len(dsn) > 0 {
+			replicasDials := make([]gorm.Dialector, len(dsn))
+			for i, dsn := range data.GetDb().GetPg().GetSourcesDsn() {
+				replicasDials[i] = postgres.Open(dsn)
+			}
+			if err = d.Use(dbresolver.Register(dbresolver.Config{
+				Sources:           sourceDials,
+				Replicas:          replicasDials,
+				TraceResolverMode: true,
+			})); err != nil {
+				return nil, err
+			}
+		}
+
 		return NewPg(d)
 	default:
 		return NewLevelDb(data.GetDb().GetLeveldb().GetPath())
