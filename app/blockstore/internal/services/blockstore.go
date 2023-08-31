@@ -148,7 +148,7 @@ func (s *BlockstoreService) AllKeysChan(_ *emptypb.Empty, conn pb.Blockstore_All
 	defer cancel()
 	keyCh := s.index.List(ctx)
 	for key := range keyCh {
-		c, err := cid.Cast([]byte(key))
+		c, err := cid.Decode(key)
 		if err != nil {
 			continue
 		}
