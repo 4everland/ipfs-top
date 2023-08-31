@@ -80,7 +80,7 @@ func (pg *PgIndexStore) List(ctx context.Context) <-chan string {
 			startKey = ""
 			for {
 				if err := pg.db.WithContext(ctx).Table(tableName).Where("id > ? COLLATE \"C\"", startKey).Select("id").
-					Order("id COLLATE \"C\" ASC").Find(&data).Error; err != nil || len(data) == 0 {
+					Limit(1000).Order("id COLLATE \"C\" ASC").Find(&data).Error; err != nil || len(data) == 0 {
 					break
 				}
 
