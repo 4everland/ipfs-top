@@ -22,3 +22,9 @@ data:
     lruSize: 64
     basePath: "./cache"
     indexPath: "./cache-index"
+  redis:
+    addr: 127.0.0.1:6379
+    password: password
+    read_timeout: 0.2s
+    write_timeout: 0.2s
+

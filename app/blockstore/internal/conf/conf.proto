@@ -26,6 +26,14 @@ message Data {
     PG = 2;
   }
 
+  message Redis {
+    string network = 1;
+    string addr = 2;
+    string password = 3;
+    google.protobuf.Duration read_timeout = 4;
+    google.protobuf.Duration write_timeout = 5;
+  }
+
   message S3 {
     string endpoint = 1;
     string region = 2;
@@ -46,6 +54,7 @@ message Data {
     message Pg {
       repeated string sourcesDsn = 1;
       repeated string replicasDsn = 2;
+      bool enableBloom = 3;
     }
 
     DBType type = 1;
@@ -63,4 +72,5 @@ message Data {
   S3 storage = 1;
   DB db = 2;
   Cache cache = 3;
+  Redis redis = 4;
 }

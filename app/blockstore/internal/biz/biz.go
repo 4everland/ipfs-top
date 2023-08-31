@@ -3,6 +3,7 @@ package biz
 import (
 	"github.com/4everland/ipfs-servers/app/blockstore/internal/conf"
 	"github.com/google/wire"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -16,7 +17,23 @@ import (
 // ProviderSet is data providers.
 var ProviderSet = wire.NewSet(NewBackendStorage, NewIndexStore)
 
+func NewRedisClient(data *conf.Data) (*redis.Client, error) {
+	client := redis.NewClient(&redis.Options{
+		Addr:         data.Redis.Addr,
+		Password:     data.Redis.Password,
+		DB:           0,
+		PoolSize:     32,
+		ReadTimeout:  data.Redis.ReadTimeout.AsDuration(),
+		WriteTimeout: data.Redis.WriteTimeout.AsDuration(),
+	})
+	return client, nil
+}
+
 func NewIndexStore(data *conf.Data) (BlockIndex, error) {
+	rd, err := NewRedisClient(data)
+	if err != nil {
+		return nil, err
+	}
 	switch data.GetDb().GetType() {
 	case conf.Data_TiKV:
 		return NewTiKv(data.GetDb().GetTikv().GetAddrs()...)
@@ -63,7 +80,7 @@ func NewIndexStore(data *conf.Data) (BlockIndex, error) {
 			}
 		}
 
-		return NewPg(d)
+		return NewPg(d, rd, data.GetDb().GetPg().GetEnableBloom())
 	default:
 		return NewLevelDb(data.GetDb().GetLeveldb().GetPath())
 	}
