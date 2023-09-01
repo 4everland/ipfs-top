@@ -91,6 +91,16 @@ func (pg *PgIndexStore) Delete(ctx context.Context, cid string) error {
 }
 
 func (pg *PgIndexStore) Get(ctx context.Context, cid string) (*IndexValue, error) {
+	if pg.enableBloomQuery {
+		exists, err := pg.rd.BFExists(ctx, bloomFilterKey(cid2TableIndex(cid)), cid).Result()
+		if err != nil {
+			return nil, err
+		}
+		if !exists {
+			return nil, ipld.ErrNotFound{}
+		}
+	}
+
 	var v PgIndexValue
 	if err := pg.db.WithContext(ctx).Select([]string{"id", "size"}).Take(&v, "id = ?", cid).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
