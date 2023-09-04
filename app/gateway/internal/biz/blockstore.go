@@ -62,6 +62,9 @@ func (bs *readOnlyS3blockStore) Get(ctx context.Context, c cid.Cid) (block block
 }
 
 func (bs *readOnlyS3blockStore) GetSize(ctx context.Context, c cid.Cid) (int, error) {
+	if c.Version() == 0 {
+		c = cid.NewCidV1(cid.DagProtobuf, c.Hash())
+	}
 	key := c.String()
 	if size := bs.c.Size(key); size >= 0 {
 		return int(size), nil
@@ -71,6 +74,9 @@ func (bs *readOnlyS3blockStore) GetSize(ctx context.Context, c cid.Cid) (int, er
 }
 
 func (bs *readOnlyS3blockStore) DeleteBlock(_ context.Context, c cid.Cid) error {
+	if c.Version() == 0 {
+		c = cid.NewCidV1(cid.DagProtobuf, c.Hash())
+	}
 	if err := bs.c.Erase(c.String()); err != nil {
 		bs.log.Error("delete disk cache error:", err)
 		return err
