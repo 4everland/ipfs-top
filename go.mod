@@ -8,7 +8,7 @@ require (
 	github.com/go-kratos/kratos/v2 v2.5.4
 	github.com/google/wire v0.5.0
 	github.com/hashicorp/golang-lru v0.5.4
-	github.com/ipfs/boxo v0.11.0
+	github.com/ipfs/boxo v0.12.0
 	github.com/ipfs/go-block-format v0.1.2
 	github.com/ipfs/go-cid v0.4.1
 	github.com/ipfs/go-datastore v0.6.0
@@ -19,7 +19,7 @@ require (
 	github.com/ipfs/go-unixfsnode v1.7.1
 	github.com/ipld/go-car/v2 v2.10.2-0.20230622090957-499d0c909d33
 	github.com/ipld/go-codec-dagpb v1.6.0
-	github.com/ipld/go-ipld-prime v0.20.0
+	github.com/ipld/go-ipld-prime v0.21.0
 	github.com/libp2p/go-libp2p v0.27.1
 	github.com/libp2p/go-libp2p-kad-dht v0.23.0
 	github.com/libp2p/go-libp2p-record v0.2.0
