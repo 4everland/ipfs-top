@@ -4,6 +4,7 @@ import (
 	"flag"
 	"github.com/4everland/ipfs-servers/app/gateway/internal/conf"
 	"github.com/4everland/ipfs-servers/third_party/logx"
+	"github.com/4everland/ipfs-servers/third_party/pprofx"
 
 	"os"
 
@@ -46,9 +47,7 @@ func newApp(logger log.Logger, hs *http.Server) *kratos.App {
 		kratos.Version(Version),
 		kratos.Metadata(map[string]string{}),
 		kratos.Logger(logger),
-		kratos.Server(
-			hs,
-		),
+		pprofx.Server(hs),
 	)
 }
 

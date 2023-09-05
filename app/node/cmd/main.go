@@ -5,6 +5,7 @@ import (
 	"github.com/4everland/ipfs-servers/app/node/internal/conf"
 	"github.com/4everland/ipfs-servers/app/node/internal/server"
 	"github.com/4everland/ipfs-servers/third_party/logx"
+	"github.com/4everland/ipfs-servers/third_party/pprofx"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 
 	"github.com/go-kratos/kratos/v2"
@@ -45,10 +46,7 @@ func newApp(logger log.Logger, ns *server.NodeServer, gs *grpc.Server) *kratos.A
 		kratos.Version(Version),
 		kratos.Metadata(map[string]string{}),
 		kratos.Logger(logger),
-		kratos.Server(
-			ns,
-			gs,
-		),
+		pprofx.Server(ns, gs),
 	)
 }
 
