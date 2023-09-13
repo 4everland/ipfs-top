@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"github.com/4everland/ipfs-servers/third_party/coreunix"
@@ -8,6 +9,7 @@ import (
 	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/files"
 	"github.com/ipfs/boxo/ipld/merkledag"
+	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	http2 "github.com/ipfs/go-ipfs-cmds/http"
@@ -46,6 +48,7 @@ func NewDagService(dag ipld.DAGService, resolver coreunix.DagResolve) *DagServic
 func (s *DagService) RegisterRoute(route *httpctx.Router) {
 	route.POST("/dag/import", s.DagImport)
 	route.POST("/dag/get", s.DagGet)
+	route.POST("/dag/put", s.DagPut)
 }
 
 type DagImportRequest struct {
@@ -264,4 +267,147 @@ func (s *DagService) DagGet(ctx httpctx.Context) (err error) {
 	}()
 
 	return res.Emit(r)
+}
+
+type DagPutRequest struct {
+	StoreCodec    string `json:"store-codec,omitempty"`
+	InputCodec    string `json:"input-codec,omitempty"`
+	Pin           bool   `json:"pin,omitempty"`
+	Hash          string `json:"hash,omitempty"`
+	AllowBigBlock bool   `json:"allow-big-block,omitempty"`
+}
+
+func (s *DagService) DagPut(ctx httpctx.Context) (err error) {
+	w := ctx.Response()
+	r := ctx.Request()
+	res, err := http2.NewResponseEmitter(ctx.Response(), ctx.Request().Method, &cmds.Request{
+		Options: cmds.OptMap{cmds.EncLong: cmds.JSON},
+		Context: ctx,
+	})
+
+	var req DagPutRequest
+	if err = ctx.BindQuery(&req); err != nil {
+		return
+	}
+	if req.StoreCodec == "" {
+		req.StoreCodec = "dag-cbor"
+	}
+
+	if req.InputCodec == "" {
+		req.InputCodec = "dag-json"
+	}
+
+	if req.Hash == "" {
+		req.Hash = "sha2-256"
+	}
+
+	var icodec mc.Code
+	if err := icodec.Set(req.InputCodec); err != nil {
+		return err
+	}
+	var scodec mc.Code
+	if err := scodec.Set(req.StoreCodec); err != nil {
+		return err
+	}
+	var mhType mc.Code
+	if err := mhType.Set(req.Hash); err != nil {
+		return err
+	}
+
+	cidPrefix := cid.Prefix{
+		Version:  1,
+		Codec:    uint64(scodec),
+		MhType:   uint64(mhType),
+		MhLength: -1,
+	}
+
+	decoder, err := multicodec.LookupDecoder(uint64(icodec))
+	if err != nil {
+		return err
+	}
+	encoder, err := multicodec.LookupEncoder(uint64(scodec))
+	if err != nil {
+		return err
+	}
+
+	var adder ipld.NodeAdder = s.dag
+	if req.Pin {
+		//todo pinset
+	}
+	b := ipld.NewBatch(ctx, adder)
+
+	contentType := r.Header.Get(contentTypeHeader)
+	mediatype, _, _ := mime.ParseMediaType(contentType)
+	var f files.Directory
+	if mediatype == "multipart/form-data" {
+		var reader *multipart.Reader
+		if reader, err = r.MultipartReader(); err != nil {
+			return
+		}
+
+		if f, err = files.NewFileFromPartReader(reader, mediatype); err != nil {
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Transfer-Encoding", "chunked")
+	w.Header().Set("X-Chunked-Output", "1")
+	it := f.Entries()
+	for it.Next() {
+		file := files.FileFromEntry(it)
+		if file == nil {
+			return fmt.Errorf("expected a regular file")
+		}
+
+		node := basicnode.Prototype.Any.NewBuilder()
+		if err := decoder(node, file); err != nil {
+			return err
+		}
+		n := node.Build()
+
+		bd := bytes.NewBuffer([]byte{})
+		if err := encoder(n, bd); err != nil {
+			return err
+		}
+
+		blockCid, err := cidPrefix.Sum(bd.Bytes())
+		if err != nil {
+			return err
+		}
+		blk, err := blocks.NewBlockWithCid(bd.Bytes(), blockCid)
+		if err != nil {
+			return err
+		}
+		ln := ipldlegacy.LegacyNode{
+			Block: blk,
+			Node:  n,
+		}
+
+		if !req.AllowBigBlock && len(blk.RawData()) > 1024*1024 {
+			return fmt.Errorf("produced block is over 1MiB: big blocks can't be exchanged with other peers. consider using UnixFS for automatic chunking of bigger files, or pass --allow-big-block to override")
+		}
+
+		if err := b.Add(ctx, &ln); err != nil {
+			return err
+		}
+
+		cid := ln.Cid()
+		if err := res.Emit(&OutputObject{Cid: cid}); err != nil {
+			return err
+		}
+	}
+	if it.Err() != nil {
+		return it.Err()
+	}
+
+	if err := b.Commit(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type OutputObject struct {
+	Cid cid.Cid
 }
