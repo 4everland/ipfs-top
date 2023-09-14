@@ -3,6 +3,9 @@ package dag
 import (
 	"context"
 	pb "github.com/4everland/ipfs-servers/api/blockstore"
+	"github.com/go-kratos/kratos/v2/middleware/recovery"
+	"github.com/go-kratos/kratos/v2/middleware/tracing"
+	grpc2 "github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/ipfs/boxo/blockstore"
 	"github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
@@ -43,7 +46,17 @@ func NewBlockStore(endpoint, cert string) (blockstore.Blockstore, error) {
 		Timeout:             2 * time.Second,  // wait 1 second for ping ack before considering the connection dead
 		PermitWithoutStream: true,             // send pings even without active streams
 	}))
-	conn, err := grpc.Dial(endpoint, o...)
+
+	conn, err := grpc2.Dial(
+		context.Background(),
+		grpc2.WithEndpoint(endpoint),
+		grpc2.WithMiddleware(
+			tracing.Client(),
+			recovery.Recovery(),
+		),
+		grpc2.WithTimeout(time.Minute),
+		grpc2.WithOptions(o...),
+	)
 	if err != nil {
 		return nil, err
 	}

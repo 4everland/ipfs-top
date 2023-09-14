@@ -3,6 +3,9 @@ package dag
 import (
 	"context"
 	pb "github.com/4everland/ipfs-servers/api/routing"
+	"github.com/go-kratos/kratos/v2/middleware/recovery"
+	"github.com/go-kratos/kratos/v2/middleware/tracing"
+	grpc2 "github.com/go-kratos/kratos/v2/transport/grpc"
 	exchange "github.com/ipfs/boxo/exchange"
 	"github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
@@ -11,6 +14,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"time"
 )
 
 type GrpcNodeRouting interface {
@@ -195,6 +199,7 @@ func (g grpcRouting) GetBlocks(ctx context.Context, keys []cid.Cid) (<-chan bloc
 }
 
 func (g grpcRouting) NotifyNewBlocks(ctx context.Context, blocks ...blocks.Block) error {
+	return nil
 	for _, block := range blocks {
 		err := g.Provide(ctx, block.Cid(), true)
 		if err != nil {
@@ -210,8 +215,17 @@ func (g grpcRouting) Bootstrap(ctx context.Context) error {
 
 func NewGrpcRouting(endpoint string) (GrpcNodeRouting, error) {
 	tlsOption := grpc.WithTransportCredentials(insecure.NewCredentials())
+	conn, err := grpc2.Dial(
+		context.Background(),
+		grpc2.WithEndpoint(endpoint),
+		grpc2.WithMiddleware(
+			tracing.Client(),
+			recovery.Recovery(),
+		),
+		grpc2.WithTimeout(time.Minute),
+		grpc2.WithOptions(tlsOption),
+	)
 
-	conn, err := grpc.Dial(endpoint, tlsOption)
 	if err != nil {
 		return nil, err
 	}

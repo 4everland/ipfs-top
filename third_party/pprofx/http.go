@@ -8,7 +8,7 @@ import (
 )
 
 func Server(servers ...transport.Server) kratos.Option {
-	server := http.NewServer(http.Address("0.0.0.0:6868"))
+	server := http.NewServer(http.Address(":0"))
 	server.HandlePrefix("/", pprof.NewHandler())
 	servers = append(servers, server)
 	return kratos.Server(servers...)

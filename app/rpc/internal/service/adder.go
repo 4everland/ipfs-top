@@ -8,9 +8,10 @@ import (
 	coreiface "github.com/ipfs/boxo/coreiface"
 	"github.com/ipfs/boxo/coreiface/options"
 	"github.com/ipfs/boxo/files"
+	cmds "github.com/ipfs/go-ipfs-cmds"
+	http2 "github.com/ipfs/go-ipfs-cmds/http"
 	"mime"
 	"mime/multipart"
-	"net/http"
 	"path"
 )
 
@@ -60,6 +61,10 @@ func (a *AdderService) RegisterRoute(route *httpctx.Router) {
 func (a *AdderService) Add(ctx httpctx.Context) (err error) {
 	w := ctx.Response()
 	r := ctx.Request()
+	res, err := http2.NewResponseEmitter(ctx.Response(), ctx.Request().Method, &cmds.Request{
+		Options: cmds.OptMap{cmds.EncLong: cmds.JSON},
+		Context: ctx,
+	})
 	contentType := r.Header.Get(contentTypeHeader)
 	mediatype, _, _ := mime.ParseMediaType(contentType)
 
@@ -128,7 +133,6 @@ func (a *AdderService) Add(ctx httpctx.Context) (err error) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Transfer-Encoding", "chunked")
 	w.Header().Set("X-Chunked-Output", "1")
-	w.WriteHeader(http.StatusOK)
 	for addit.Next() {
 		_, dir := addit.Node().(files.Directory)
 		errCh := make(chan error, 1)
@@ -164,36 +168,23 @@ func (a *AdderService) Add(ctx httpctx.Context) (err error) {
 				output.Name = path.Join(addit.Name(), output.Name)
 			}
 
-			addEvent := AddEvent{
+			res.Emit(&AddEvent{
 				Name:  output.Name,
 				Hash:  h,
 				Bytes: output.Bytes,
 				Size:  output.Size,
-			}
-			if len(addEvent.Hash) > 0 {
-				lastEvent = addEvent
-				if quieter {
-					continue
-				}
-				_, _ = w.Write(addEvent.Marshal())
-				_, _ = w.Write([]byte("\n"))
-			} else {
-				if !addRequest.Progress {
-					continue
-				}
-				_, _ = w.Write(addEvent.Marshal())
-				_, _ = w.Write([]byte("\n"))
-			}
-
+			})
 		}
 
 		if err = <-errCh; err != nil {
+			res.CloseWithError(err)
 			return
 		}
 		added++
 	}
 
 	if addit.Err() != nil {
+		res.CloseWithError(addit.Err())
 		return addit.Err()
 	}
 
@@ -201,8 +192,7 @@ func (a *AdderService) Add(ctx httpctx.Context) (err error) {
 		return fmt.Errorf("expected a file argument")
 	}
 	if quieter {
-		_, _ = w.Write(lastEvent.Marshal())
-		_, _ = w.Write([]byte("\n"))
+		res.Emit(&lastEvent)
 	}
 
 	return nil
