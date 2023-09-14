@@ -10,6 +10,7 @@ import (
 	"github.com/go-kratos/kratos/v2/middleware/logging"
 	"github.com/go-kratos/kratos/v2/middleware/metadata"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
+	"github.com/go-kratos/kratos/v2/middleware/tracing"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 )
 
@@ -22,6 +23,7 @@ func NewContentRoutingGRPCServer(c *conf.Server, routingSvc *service.RoutingServ
 				enum.MetadataServerKind: enum.ServerKindGRPC,
 			})),
 			logging.Server(logger),
+			tracing.Server(),
 		),
 	}
 
