@@ -3,17 +3,15 @@ package main
 import (
 	"flag"
 	"github.com/4everland/ipfs-servers/app/blockstore/internal/conf"
-	"github.com/4everland/ipfs-servers/third_party/logx"
 	"github.com/4everland/ipfs-servers/third_party/pprofx"
 	"os"
 
+	"github.com/4everland/golog"
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/config"
 	"github.com/go-kratos/kratos/v2/config/file"
 	"github.com/go-kratos/kratos/v2/log"
-	"github.com/go-kratos/kratos/v2/middleware/tracing"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
-
 	_ "go.uber.org/automaxprocs"
 )
 
@@ -52,15 +50,11 @@ func newApp(logger log.Logger, gs *grpc.Server) *kratos.App {
 
 func main() {
 	flag.Parse()
-	logger := log.With(logx.NewLogger(log.NewStdLogger(os.Stdout), logx.WithFilterLevel(log.ParseLevel(loglevel))),
-		"ts", log.DefaultTimestamp,
-		"caller", log.DefaultCaller,
-		"service.id", id,
-		"service.name", Name,
-		"service.version", Version,
-		"trace.id", tracing.TraceID(),
-		"span.id", tracing.SpanID(),
-	)
+	logger := golog.NewFormatStdLogger(os.Stdout, golog.WithFilterLevel(log.LevelInfo), golog.WithServerName(Name, Version))
+	if err := golog.InitOTLPTracer(Name+":"+Version, golog.RatioFromEnv()); err != nil {
+		log.NewHelper(logger).Warnf("InitOTLPTracer err: %s", err)
+	}
+
 	c := config.New(
 		config.WithSource(
 			file.NewSource(flagconf),
