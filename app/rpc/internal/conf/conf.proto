@@ -23,6 +23,7 @@ message Data {
   string blockstore_uri = 1;
   string exchange_endpoint = 2;
   string pin_endpoint = 3;
+  Kafka kafka = 4;
 }
 
 message Version {
@@ -31,3 +32,7 @@ message Version {
   string commit = 3;
 }
 
+message Kafka {
+  repeated string addr = 1;
+  string topic = 2;
+}

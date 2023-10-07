@@ -9,6 +9,7 @@ import (
 
 func ProviderSystem(ds datastore.Batching, bs blockstore.Blockstore) func(rt routing.ContentRouting) (provider.System, error) {
 	return func(rt routing.ContentRouting) (provider.System, error) {
-		return provider.New(ds, provider.Online(rt), provider.KeyProvider(bs.AllKeysChan))
+		//return provider.New(ds, provider.Online(rt), provider.KeyProvider(bs.AllKeysChan))
+		return provider.New(ds, provider.Online(rt))
 	}
 }

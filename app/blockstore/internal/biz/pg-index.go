@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"hash/crc32"
+	"time"
 )
 
 const (
@@ -15,6 +16,7 @@ const (
 	BloomFilterKey  = "blockstore:cid-bloom-filter"
 	BloomErrorRatio = 0.01
 	BloomSize       = 5000000
+	IndexCacheKey   = "blockstore:index-cache"
 )
 
 type PgIndexValue struct {
@@ -61,10 +63,19 @@ func (pg *PgIndexStore) Put(ctx context.Context, cid string, v IndexValue) error
 	if err != nil {
 		return err
 	}
-	return pg.db.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&PgIndexValue{
+
+	if err = pg.db.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&PgIndexValue{
 		Cid:  cid,
 		Size: v.size,
-	}).Error
+	}).Error; err != nil {
+		return err
+	}
+
+	if err = pg.rd.Set(ctx, indexCacheKey(cid), v.size, time.Second*10).Err(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (pg *PgIndexStore) Has(ctx context.Context, cid string) (bool, error) {
@@ -77,6 +88,11 @@ func (pg *PgIndexStore) Has(ctx context.Context, cid string) (bool, error) {
 			return false, nil
 		}
 	}
+
+	if exists := pg.rd.Exists(ctx, indexCacheKey(cid)).Val(); exists == 1 {
+		return true, nil
+	}
+
 	if err := pg.db.WithContext(ctx).Select("id").Take(&PgIndexValue{}, "id = ?", cid).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return false, nil
@@ -99,6 +115,14 @@ func (pg *PgIndexStore) Get(ctx context.Context, cid string) (*IndexValue, error
 		if !exists {
 			return nil, ipld.ErrNotFound{}
 		}
+	}
+
+	size, err := pg.rd.Get(ctx, indexCacheKey(cid)).Uint64()
+	if err == nil {
+		return &IndexValue{
+			size:     uint32(size),
+			storeKey: cid,
+		}, nil
 	}
 
 	var v PgIndexValue
@@ -152,4 +176,8 @@ func bloomFilterKey(i int) string {
 
 func cid2TableIndex(cid string) int {
 	return int(crc32.ChecksumIEEE([]byte(cid))) % 64
+}
+
+func indexCacheKey(cid string) string {
+	return fmt.Sprintf("%s:%s", IndexCacheKey, cid)
 }

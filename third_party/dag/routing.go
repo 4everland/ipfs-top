@@ -23,14 +23,20 @@ type GrpcNodeRouting interface {
 }
 
 type grpcRouting struct {
-	client pb.RoutingClient
+	client     pb.RoutingClient
+	providerFn ProviderFn
 }
+
+type ProviderFn func(cid cid.Cid) error
 
 func (g grpcRouting) Close() error {
 	return nil
 }
 
 func (g grpcRouting) Provide(ctx context.Context, c cid.Cid, b bool) error {
+	if g.providerFn != nil {
+		return g.providerFn(c)
+	}
 	_, err := g.client.Provide(ctx, &pb.ProvideReq{
 		Cid:     &pb.Cid{Str: c.Bytes()},
 		Provide: b,
@@ -198,10 +204,9 @@ func (g grpcRouting) GetBlocks(ctx context.Context, keys []cid.Cid) (<-chan bloc
 	return ch, nil
 }
 
-func (g grpcRouting) NotifyNewBlocks(ctx context.Context, blocks ...blocks.Block) error {
-	return nil
+func (g grpcRouting) NotifyNewBlocks(ctx context.Context, blocks ...blocks.Block) (err error) {
 	for _, block := range blocks {
-		err := g.Provide(ctx, block.Cid(), true)
+		err = g.Provide(ctx, block.Cid(), true)
 		if err != nil {
 			return err
 		}
@@ -213,7 +218,7 @@ func (g grpcRouting) Bootstrap(ctx context.Context) error {
 	return nil
 }
 
-func NewGrpcRouting(endpoint string) (GrpcNodeRouting, error) {
+func NewGrpcRouting(endpoint string, fn ProviderFn) (GrpcNodeRouting, error) {
 	tlsOption := grpc.WithTransportCredentials(insecure.NewCredentials())
 	conn, err := grpc2.Dial(
 		context.Background(),
@@ -230,7 +235,8 @@ func NewGrpcRouting(endpoint string) (GrpcNodeRouting, error) {
 		return nil, err
 	}
 	return &grpcRouting{
-		client: pb.NewRoutingClient(conn),
+		client:     pb.NewRoutingClient(conn),
+		providerFn: fn,
 	}, nil
 }
 

@@ -1,0 +1,21 @@
+syntax = "proto3";
+package ipfs.node.conf;
+
+option go_package = "ipfs-servers/app/node/internal/conf;conf";
+
+
+message Bootstrap {
+  Data data = 1;
+}
+
+message Data {
+  Kafka kafka = 1;
+  repeated string node_addr = 2;
+  string blockstore_uri = 3;
+}
+
+message Kafka {
+  repeated string addr = 1;
+  string topic = 2;
+  string group = 3;
+}

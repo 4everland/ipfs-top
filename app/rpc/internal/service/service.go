@@ -6,6 +6,7 @@ import (
 	"github.com/4everland/ipfs-servers/third_party/coreapi"
 	"github.com/4everland/ipfs-servers/third_party/coreunix"
 	"github.com/4everland/ipfs-servers/third_party/dag"
+	"github.com/IBM/sarama"
 	"github.com/google/wire"
 	"github.com/ipfs/boxo/blockservice"
 	blockstore "github.com/ipfs/boxo/blockstore"
@@ -13,8 +14,10 @@ import (
 	exchange "github.com/ipfs/boxo/exchange"
 	offline "github.com/ipfs/boxo/exchange/offline"
 	"github.com/ipfs/boxo/ipld/merkledag"
+	"github.com/ipfs/go-cid"
 	format "github.com/ipfs/go-ipld-format"
 	"runtime"
+	"time"
 )
 
 // ProviderSet is service providers.
@@ -57,11 +60,45 @@ func NewExchange(config *conf.Data) exchange.Interface {
 	if config.GetExchangeEndpoint() == "" {
 		return nil
 	}
-	s, err := dag.NewGrpcRouting(config.ExchangeEndpoint)
+
+	if config.Kafka == nil {
+		s, err := dag.NewGrpcRouting(config.ExchangeEndpoint, nil)
+		if err != nil {
+			panic(err)
+		}
+		return s
+	}
+
+	producer := NewKafkaProducer(config.Kafka)
+	s, err := dag.NewGrpcRouting(config.ExchangeEndpoint, func(cid cid.Cid) error {
+		producer.Input() <- &sarama.ProducerMessage{
+			Topic: config.GetKafka().GetTopic(),
+			Value: sarama.ByteEncoder(cid.Bytes()),
+		}
+		return nil
+	})
 	if err != nil {
 		panic(err)
 	}
 	return s
+}
+
+func NewKafkaProducer(kafka *conf.Kafka) sarama.AsyncProducer {
+	config := sarama.NewConfig()
+	config.Net.TLS.Enable = false
+
+	config.Producer.Return.Errors = false
+	config.Producer.RequiredAcks = sarama.WaitForLocal
+	config.Producer.Compression = sarama.CompressionSnappy
+	config.Producer.Flush.Frequency = 500 * time.Millisecond
+	config.Producer.Retry.Max = 10
+
+	asyncProducer, err := sarama.NewAsyncProducer(kafka.Addr, config)
+	if err != nil {
+		panic(err)
+	}
+
+	return asyncProducer
 }
 
 func NewPinAPI(config *conf.Data) iface.PinAPI {

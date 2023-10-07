@@ -30,7 +30,7 @@ func NewBlockStore(config *conf.Data) blockstore.Blockstore {
 }
 
 func NewExchange(config *conf.Data) exchange.Interface {
-	s, err := dag.NewGrpcRouting(config.ExchangeEndpoint)
+	s, err := dag.NewGrpcRouting(config.ExchangeEndpoint, nil)
 	if err != nil {
 		panic(err)
 	}
