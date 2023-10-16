@@ -7,6 +7,7 @@ import (
 	"github.com/4everland/ipfs-servers/app/node/internal/data"
 	"github.com/4everland/ipfs-servers/app/node/internal/service"
 	"github.com/4everland/ipfs-servers/app/node/internal/types"
+	"github.com/4everland/ipfs-servers/third_party/peering"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/ipfs/boxo/ipns"
 	"github.com/ipfs/go-datastore"
@@ -150,6 +151,13 @@ func (server *NodeServer) Start(ctx context.Context) (err error) {
 	}
 	server.nat = n
 
+	p := peering.NewPeeringService(server.h)
+	for _, info := range server.peers {
+		p.AddPeer(info)
+	}
+	if err = p.Start(); err != nil {
+		server.logger.Errorf("Start ppering service error :%s", err)
+	}
 	server.logger.Infof("DHT node started.")
 
 	for _, addr := range server.h.Addrs() {
