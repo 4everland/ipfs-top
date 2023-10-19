@@ -18,6 +18,7 @@ require (
 	github.com/ipfs/go-ipfs-cmds v0.10.0
 	github.com/ipfs/go-ipld-format v0.5.0
 	github.com/ipfs/go-ipld-legacy v0.2.1
+	github.com/ipfs/go-log v1.0.5
 	github.com/ipfs/go-unixfsnode v1.7.1
 	github.com/ipld/go-car/v2 v2.10.2-0.20230622090957-499d0c909d33
 	github.com/ipld/go-codec-dagpb v1.6.0
@@ -33,6 +34,7 @@ require (
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/tikv/client-go/v2 v2.0.5
 	go.uber.org/automaxprocs v1.5.1
+	go.uber.org/fx v1.19.2
 	google.golang.org/grpc v1.54.1
 	google.golang.org/protobuf v1.30.0
 	gorm.io/driver/postgres v1.5.2
@@ -100,7 +102,6 @@ require (
 	github.com/ipfs/go-ipfs-redirects-file v0.1.1 // indirect
 	github.com/ipfs/go-ipfs-util v0.0.2 // indirect
 	github.com/ipfs/go-ipld-cbor v0.0.6 // indirect
-	github.com/ipfs/go-log v1.0.5 // indirect
 	github.com/ipfs/go-log/v2 v2.5.1 // indirect
 	github.com/ipfs/go-metrics-interface v0.0.1 // indirect
 	github.com/ipfs/go-peertaskqueue v0.8.1 // indirect
@@ -199,7 +200,6 @@ require (
 	go.opentelemetry.io/proto/otlp v0.19.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/dig v1.16.1 // indirect
-	go.uber.org/fx v1.19.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/crypto v0.13.0 // indirect
