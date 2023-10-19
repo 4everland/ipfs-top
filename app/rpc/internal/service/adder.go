@@ -178,14 +178,14 @@ func (a *AdderService) Add(ctx httpctx.Context) (err error) {
 
 		if err = <-errCh; err != nil {
 			res.CloseWithError(err)
-			return
+			return nil
 		}
 		added++
 	}
 
 	if addit.Err() != nil {
 		res.CloseWithError(addit.Err())
-		return addit.Err()
+		return nil
 	}
 
 	if added == 0 {

@@ -55,7 +55,9 @@ func (bs *blockStore) Get(ctx context.Context, key string) (r io.ReadCloser, err
 	defer r.Close()
 	var bf bytes.Buffer
 	if err = bs.c.WriteStream(key, io.TeeReader(r, &bf), false); err != nil {
-		bs.log.Error("write disk cache error:", err)
+		if !errors.Is(err, context.Canceled) {
+			bs.log.Error("write disk cache error:", err)
+		}
 	}
 
 	return io.NopCloser(&bf), nil

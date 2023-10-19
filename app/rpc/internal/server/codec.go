@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"github.com/go-kratos/kratos/v2/log"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 
 	"net/http"
@@ -13,7 +14,8 @@ type errResponse struct {
 	Type    string
 }
 
-func errorEncoder(w http.ResponseWriter, _ *http.Request, err error) {
+func errorEncoder(w http.ResponseWriter, r *http.Request, err error) {
+	log.Infof("ErrorResponse %s: %v", r.URL.String(), err)
 	v := errResponse{
 		Code:    cmds.ErrNormal,
 		Message: err.Error(),
@@ -29,7 +31,6 @@ func errorEncoder(w http.ResponseWriter, _ *http.Request, err error) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusInternalServerError)
 	if _, err = w.Write(data); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		log.Errorf("ErrorEncoder write response err:%v", err)
 	}
 }

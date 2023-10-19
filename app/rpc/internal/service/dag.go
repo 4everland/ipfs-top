@@ -25,7 +25,6 @@ import (
 	"io"
 	"mime"
 	"mime/multipart"
-	"net/http"
 )
 
 type DagService struct {
@@ -97,7 +96,6 @@ func (s *DagService) DagImport(ctx httpctx.Context) (err error) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Transfer-Encoding", "chunked")
 	w.Header().Set("X-Chunked-Output", "1")
-	w.WriteHeader(http.StatusOK)
 	it := f.Entries()
 	for it.Next() {
 		file := files.FileFromEntry(it)

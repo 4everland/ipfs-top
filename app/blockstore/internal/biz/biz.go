@@ -46,7 +46,7 @@ func NewIndexStore(data *conf.Data) (BlockIndex, error) {
 
 		d, err := gorm.Open(sourceDials[0], &gorm.Config{
 			Logger: logger.New(log.New(os.Stdout, "\r\n", log.LstdFlags), logger.Config{
-				SlowThreshold:             200 * time.Millisecond,
+				SlowThreshold:             300 * time.Millisecond,
 				LogLevel:                  logger.Warn,
 				IgnoreRecordNotFoundError: true,
 			}),
