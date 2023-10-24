@@ -8,6 +8,7 @@ import (
 	"github.com/4everland/ipfs-servers/app/node/internal/service"
 	"github.com/4everland/ipfs-servers/app/node/internal/types"
 	"github.com/4everland/ipfs-servers/third_party/peering"
+	rcmgr2 "github.com/4everland/ipfs-servers/third_party/rcmgr"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/ipfs/boxo/ipns"
 	"github.com/ipfs/go-datastore"
@@ -18,14 +19,14 @@ import (
 	record "github.com/libp2p/go-libp2p-record"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/metrics"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/peerstore"
 	"github.com/libp2p/go-libp2p/core/routing"
-	"github.com/libp2p/go-libp2p/p2p/host/autonat"
 	"github.com/libp2p/go-libp2p/p2p/host/peerstore/pstoremem"
+	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	"github.com/libp2p/go-libp2p/p2p/net/connmgr"
 	ma "github.com/multiformats/go-multiaddr"
-	madns "github.com/multiformats/go-multiaddr-dns"
 	"time"
 )
 
@@ -43,9 +44,7 @@ type NodeServer struct {
 	connManger *connmgr.BasicConnMgr
 	h          host.Host
 	rt         routing.Routing
-	nat        autonat.AutoNAT
-
-	logger *log.Helper
+	logger     *log.Helper
 
 	services []service.NodeService
 }
@@ -103,53 +102,62 @@ func NewNodeServer(serverConf *conf.Server, logger log.Logger, ds datastore.Batc
 }
 
 func (server *NodeServer) Start(ctx context.Context) (err error) {
-	if server.h, err = libp2p.New(
-		libp2p.ListenAddrStrings(server.addrs...),
-		libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
-			pms, er := providers.NewProviderManager(ctx, h.ID(), server.ps, server.pmDs)
-			if er != nil {
-				return nil, er
-			}
-			nodeDht, er := dual.New(
-				ctx, h,
-				dual.DHTOption(
-					dht.ProtocolPrefix(dht.DefaultPrefix),
-					dht.RoutingTableLatencyTolerance(10*time.Second),
-					dht.Concurrency(3),
-					dht.Mode(dht.ModeAutoServer),
-					dht.Datastore(server.dhtDs),
-					dht.ProviderStore(pms),
-					dht.Validator(record.NamespacedValidator{
-						"pk":   record.PublicKeyValidator{},
-						"ipns": ipns.Validator{KeyBook: server.ps},
-					}),
-					dht.EnableOptimisticProvide(),
-				),
-				dual.WanDHTOption(dht.BootstrapPeers(server.peers...)),
-			)
-			if er != nil {
-				return nil, er
-			}
-			server.rt = nodeDht
-			return nodeDht, nil
-		}),
-		libp2p.AutoNATServiceRateLimit(600, 5, time.Minute),
-		libp2p.EnableRelayService(),
-		libp2p.EnableHolePunching(),
-		libp2p.Identity(server.priKey),
-		libp2p.EnableNATService(),
-		libp2p.Peerstore(server.ps),
-		libp2p.ConnectionManager(server.connManger),
-		libp2p.MultiaddrResolver(madns.DefaultResolver),
-	); err != nil {
-		return err
-	}
-	dialback, err := libp2p.New(libp2p.NoListenAddrs)
-	n, err := autonat.New(server.h, autonat.EnableService(dialback.Network()))
+	bwc := metrics.NewBandwidthCounter()
+	limiter := rcmgr.NewFixedLimiter(rcmgr2.MakeResourceManagerConfig(0, 0, server.connManger.GetInfo().HighWater))
+	mgr, err := rcmgr.NewResourceManager(limiter)
 	if err != nil {
 		return err
 	}
-	server.nat = n
+	opts := []libp2p.Option{
+		libp2p.ListenAddrStrings(server.addrs...),
+		libp2p.NATPortMap(),
+		libp2p.ConnectionManager(server.connManger), //todo
+		libp2p.Identity(server.priKey),
+		libp2p.BandwidthReporter(bwc),
+		libp2p.DefaultTransports,
+		libp2p.DefaultMuxers,
+		libp2p.ResourceManager(mgr),
+	}
+
+	opts = append(opts, libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
+		pms, er := providers.NewProviderManager(ctx, h.ID(), server.ps, server.pmDs)
+		if er != nil {
+			return nil, er
+		}
+		server.h, err = libp2p.New(
+			libp2p.NoListenAddrs,
+			libp2p.BandwidthReporter(bwc),
+			libp2p.DefaultTransports,
+			libp2p.DefaultMuxers,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		nodeDht, err := dual.New(context.Background(), server.h,
+			dual.DHTOption(
+				dht.ProtocolPrefix(dht.DefaultPrefix),
+				dht.Validator(record.NamespacedValidator{
+					"pk":   record.PublicKeyValidator{},
+					"ipns": ipns.Validator{KeyBook: h.Peerstore()},
+				}),
+				dht.Datastore(server.dhtDs),
+				dht.ProviderStore(pms),
+				dht.Mode(dht.ModeAutoServer),
+				dht.BucketSize(20),
+				dht.EnableOptimisticProvide(),
+			))
+		if err != nil {
+			return nil, err
+		}
+		server.rt = nodeDht
+		return nodeDht, nil
+	}))
+
+	server.h, err = libp2p.New(opts...)
+	if err != nil {
+		return err
+	}
 
 	p := peering.NewPeeringService(server.h)
 	for _, info := range server.peers {
@@ -192,25 +200,18 @@ func (server *NodeServer) Peers() []types.ConnectPeer {
 
 	out := make([]types.ConnectPeer, 0, len(conns))
 	for _, c := range conns {
-
 		ci := types.ConnectPeer{
-			Id:      c.RemotePeer().String(),
-			Local:   c.LocalMultiaddr().String(),
-			Addr:    c.RemoteMultiaddr().String(),
-			Network: c.Stat().Stats,
+			Id:        c.RemotePeer().String(),
+			Local:     c.LocalMultiaddr().String(),
+			Addr:      c.RemoteMultiaddr().String(),
+			Opened:    c.Stat().Opened,
+			Direction: c.Stat().Direction.String(),
+			Transient: c.Stat().Transient,
 		}
 		out = append(out, ci)
 	}
 
 	return out
-}
-
-func (server *NodeServer) NatState() autonat.AutoNAT {
-	if server.h == nil {
-		return nil
-	}
-	return server.nat
-
 }
 
 func (server *NodeServer) GetContentRouting() routing.Routing {

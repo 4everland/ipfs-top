@@ -26,8 +26,14 @@ message Server {
     string leveldb_path = 7;
   }
 
+  message HTTP {
+    string addr = 1;
+    google.protobuf.Duration timeout = 2;
+  }
+
   GRPC grpc = 1;
   Node node = 2;
+  HTTP http = 3;
 }
 
 message Data {

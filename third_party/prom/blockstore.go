@@ -25,7 +25,7 @@ func NewBlockStoreMetrics() *BlockStoreMetrics {
 		requests: prometheus.NewCounter(prometheus.CounterOpts{
 			Namespace: Namespace,
 			Subsystem: BlockStoreSys,
-			Name:      "blockstore_requests_total",
+			Name:      "requests_total",
 			Help:      "Total number of blockstore requests.",
 		}),
 	}
@@ -46,5 +46,4 @@ func (m *BlockStoreMetrics) IncrBlockStoreHits() {
 func (m *BlockStoreMetrics) IncrCacheHits() {
 	m.cacheHits.Inc()
 	m.IncrBlockStoreHits()
-	m.IncrRequestHits()
 }

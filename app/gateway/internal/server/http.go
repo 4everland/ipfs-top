@@ -60,6 +60,7 @@ func NewGatewayServer(c *conf.Server, gw *gateway.BlocksBackend, logger log.Logg
 	handler := gateway.NewHostnameHandler(gwConf, gw, gwHandler)
 	srv.HandlePrefix("/ipfs/", handler)
 	srv.HandlePrefix("/", handler)
+	srv.Handle("/metrics", promhttp.Handler())
 
 	//srv.HandlePrefix("/ipns/", gwHandler)
 	srv.Route("/ping").GET("/", func(ctx http.Context) error {
@@ -67,7 +68,6 @@ func NewGatewayServer(c *conf.Server, gw *gateway.BlocksBackend, logger log.Logg
 		//bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m
 		return ctx.String(200, "pong")
 	})
-	srv.Handle("/metrics", promhttp.Handler())
 
 	return srv
 }

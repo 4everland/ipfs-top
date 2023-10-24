@@ -5,6 +5,7 @@ import (
 	"github.com/ipfs/boxo/bitswap"
 	"github.com/ipfs/boxo/bitswap/network"
 	blockstore "github.com/ipfs/boxo/blockstore"
+	metri "github.com/ipfs/go-metrics-interface"
 	"sync"
 )
 
@@ -37,6 +38,9 @@ func (bss *BitSwapService) BitSwap() *bitswap.Bitswap {
 func (bss *BitSwapService) Watch(ctx context.Context, node NodeInterface) {
 	bitSwapServiceWatchOnce.Do(func() {
 		net := network.NewFromIpfsHost(node.GetHost(), node.GetContentRouting())
-		bss.bitswapimpl = bitswap.New(ctx, net, bss.bs)
+		bsctx := metri.CtxScope(ctx, "node")
+
+		bss.bitswapimpl = bitswap.New(bsctx, net, bss.bs)
+		net.Start(bss.bitswapimpl)
 	})
 }

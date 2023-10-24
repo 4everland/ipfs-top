@@ -7,6 +7,7 @@ import (
 	"github.com/4everland/ipfs-servers/third_party/logx"
 	"github.com/4everland/ipfs-servers/third_party/pprofx"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
+	"github.com/go-kratos/kratos/v2/transport/http"
 
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/config"
@@ -39,14 +40,14 @@ func init() {
 	flag.StringVar(&loglevel, "level", "info", "log level,  eg: -level info")
 }
 
-func newApp(logger log.Logger, ns *server.NodeServer, gs *grpc.Server) *kratos.App {
+func newApp(logger log.Logger, ns *server.NodeServer, gs *grpc.Server, hs *http.Server) *kratos.App {
 	return kratos.New(
 		kratos.ID(id),
 		kratos.Name(Name),
 		kratos.Version(Version),
 		kratos.Metadata(map[string]string{}),
 		kratos.Logger(logger),
-		pprofx.Server(ns, gs),
+		pprofx.Server(ns, gs, hs),
 	)
 }
 

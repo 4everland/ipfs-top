@@ -37,7 +37,8 @@ func wireApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*
 		return nil, nil, err
 	}
 	grpcServer := server.NewContentRoutingGRPCServer(confServer, routingService, logger)
-	app := newApp(logger, nodeServer, grpcServer)
+	httpServer := server.NewHttpServer(confServer, nodeServer, logger)
+	app := newApp(logger, nodeServer, grpcServer, httpServer)
 	return app, func() {
 	}, nil
 }
