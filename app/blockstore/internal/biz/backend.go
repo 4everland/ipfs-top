@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/4everland/diskv/v3"
 	"github.com/4everland/ipfs-servers/app/blockstore/internal/conf"
+	"github.com/4everland/ipfs-servers/third_party/prom"
 	"github.com/4everland/ipfs-servers/third_party/s3client"
 	"github.com/go-kratos/kratos/v2/log"
 	"io"
@@ -23,6 +24,7 @@ type blockStore struct {
 	s3Client *s3client.S3Storage
 	c        *diskv.Diskv
 	log      *log.Helper
+	metrics  *prom.BlockStoreMetrics
 }
 
 func NewBackendStorage(data *conf.Data, logger log.Logger) BlockStore {
@@ -37,12 +39,14 @@ func NewBackendStorage(data *conf.Data, logger log.Logger) BlockStore {
 			LruIndexPath: data.Cache.IndexPath,
 			Transform:    diskv.BlockTransform(3, 3, true),
 		}),
-		log: log.NewHelper(logger),
+		log:     log.NewHelper(logger),
+		metrics: prom.NewBlockStoreMetrics(),
 	}
 }
 
 func (bs *blockStore) Get(ctx context.Context, key string) (r io.ReadCloser, err error) {
 	if r, err = bs.c.ReadStream(key, true); err == nil {
+		bs.metrics.IncrCacheHits()
 		return
 	} else if !errors.Is(err, os.ErrNotExist) {
 		bs.log.Error("get disk cache error:", err)
@@ -55,10 +59,10 @@ func (bs *blockStore) Get(ctx context.Context, key string) (r io.ReadCloser, err
 	defer r.Close()
 	var bf bytes.Buffer
 	if err = bs.c.WriteStream(key, io.TeeReader(r, &bf), false); err != nil {
-		if !errors.Is(err, context.Canceled) {
-			bs.log.Error("write disk cache error:", err)
-		}
+		bs.log.Error("write disk cache error:", err)
 	}
+
+	bs.metrics.IncrBlockStoreHits()
 
 	return io.NopCloser(&bf), nil
 }

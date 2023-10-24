@@ -29,7 +29,8 @@ func wireApp(confServer *conf.Server, data *conf.Data, logger log.Logger) (*krat
 	}
 	blockstoreService := services.NewBlockstoreService(blockStore, blockIndex)
 	grpcServer := server.NewGRPCServer(confServer, blockstoreService, logger)
-	app := newApp(logger, grpcServer)
+	httpServer := server.NewHttpServer(confServer, logger)
+	app := newApp(logger, grpcServer, httpServer)
 	return app, func() {
 	}, nil
 }

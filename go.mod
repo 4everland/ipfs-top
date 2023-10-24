@@ -3,7 +3,7 @@ module github.com/4everland/ipfs-servers
 go 1.19
 
 require (
-	github.com/4everland/diskv/v3 v3.0.5
+	github.com/4everland/diskv/v3 v3.0.6
 	github.com/4everland/golog v0.0.7
 	github.com/IBM/sarama v1.41.2
 	github.com/aws/aws-sdk-go v1.35.3
@@ -30,6 +30,7 @@ require (
 	github.com/multiformats/go-multiaddr-dns v0.3.1
 	github.com/multiformats/go-multicodec v0.9.0
 	github.com/multiformats/go-multihash v0.2.3
+	github.com/prometheus/client_golang v1.14.0
 	github.com/redis/go-redis/v9 v9.1.0
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/tikv/client-go/v2 v2.0.5
@@ -161,7 +162,6 @@ require (
 	github.com/pingcap/log v1.1.1-0.20221110025148-ca232912c9f3 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/polydawn/refmt v0.89.0 // indirect
-	github.com/prometheus/client_golang v1.14.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.42.0 // indirect
 	github.com/prometheus/procfs v0.9.0 // indirect

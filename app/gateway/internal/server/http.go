@@ -10,6 +10,7 @@ import (
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/go-kratos/kratos/v2/transport/http"
 	"github.com/ipfs/boxo/gateway"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func NewGatewayServer(c *conf.Server, gw *gateway.BlocksBackend, logger log.Logger) *http.Server {
@@ -66,6 +67,7 @@ func NewGatewayServer(c *conf.Server, gw *gateway.BlocksBackend, logger log.Logg
 		//bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m
 		return ctx.String(200, "pong")
 	})
+	srv.Handle("/metrics", promhttp.Handler())
 
 	return srv
 }

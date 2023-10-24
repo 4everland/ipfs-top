@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/4everland/diskv/v3"
 	"github.com/4everland/ipfs-servers/app/gateway/internal/conf"
+	"github.com/4everland/ipfs-servers/third_party/prom"
 	"github.com/4everland/ipfs-servers/third_party/s3client"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/ipfs/boxo/blockstore"
@@ -20,6 +21,7 @@ type readOnlyS3blockStore struct {
 	s3Client *s3client.S3Storage
 	c        *diskv.Diskv
 	log      *log.Helper
+	metrics  *prom.BlockStoreMetrics
 }
 
 func NewS3readOnlyS3blockStore(data *conf.Data, logger log.Logger) blockstore.Blockstore {
@@ -31,7 +33,8 @@ func NewS3readOnlyS3blockStore(data *conf.Data, logger log.Logger) blockstore.Bl
 			LruIndexPath: data.GetRo().GetCache().GetIndexPath(),
 			Transform:    diskv.BlockTransform(3, 3, true),
 		}),
-		log: log.NewHelper(logger),
+		log:     log.NewHelper(logger),
+		metrics: prom.NewBlockStoreMetrics(),
 	}
 }
 
@@ -42,6 +45,7 @@ func (bs *readOnlyS3blockStore) Get(ctx context.Context, c cid.Cid) (block block
 	}
 
 	if b, err := bs.c.Read(key); err == nil {
+		bs.metrics.IncrCacheHits()
 		return blocks.NewBlockWithCid(b, c)
 	} else if !errors.Is(err, os.ErrNotExist) {
 		bs.log.Error("get disk cache error:", err)
@@ -49,15 +53,14 @@ func (bs *readOnlyS3blockStore) Get(ctx context.Context, c cid.Cid) (block block
 
 	var r io.ReadCloser
 	if r, err = bs.s3Client.Get(ctx, key); err != nil {
+		bs.metrics.IncrRequestHits()
 		return nil, format.ErrNotFound{}
 	}
-
+	bs.metrics.IncrBlockStoreHits()
 	defer r.Close()
 	var bf bytes.Buffer
 	if err = bs.c.WriteStream(key, io.TeeReader(r, &bf), false); err != nil {
-		if !errors.Is(err, context.Canceled) {
-			bs.log.Error("write disk cache error:", err)
-		}
+		bs.log.Error("write disk cache error:", err)
 	}
 
 	return blocks.NewBlockWithCid(bf.Bytes(), c)
