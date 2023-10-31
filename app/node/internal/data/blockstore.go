@@ -1,8 +1,8 @@
 package data
 
 import (
-	"github.com/4everland/ipfs-servers/app/node/internal/conf"
-	"github.com/4everland/ipfs-servers/third_party/dag"
+	"github.com/4everland/ipfs-top/app/node/internal/conf"
+	"github.com/4everland/ipfs-top/third_party/dag"
 	"github.com/ipfs/boxo/blockstore"
 )
 

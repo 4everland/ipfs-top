@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"github.com/4everland/ipfs-servers/app/node/internal/types"
+	"github.com/4everland/ipfs-top/app/node/internal/types"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/routing"
 	"github.com/libp2p/go-libp2p/p2p/net/connmgr"

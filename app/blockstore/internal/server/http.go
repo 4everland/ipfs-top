@@ -1,8 +1,8 @@
 package server
 
 import (
-	"github.com/4everland/ipfs-servers/app/blockstore/internal/conf"
-	"github.com/4everland/ipfs-servers/enum"
+	"github.com/4everland/ipfs-top/app/blockstore/internal/conf"
+	"github.com/4everland/ipfs-top/enum"
 	"github.com/go-kratos/kratos/v2/log"
 	md "github.com/go-kratos/kratos/v2/metadata"
 	"github.com/go-kratos/kratos/v2/middleware/logging"

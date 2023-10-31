@@ -1,7 +1,7 @@
 package biz
 
 import (
-	"github.com/4everland/ipfs-servers/app/blockstore/internal/conf"
+	"github.com/4everland/ipfs-top/app/blockstore/internal/conf"
 	"github.com/google/wire"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"

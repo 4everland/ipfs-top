@@ -392,8 +392,6 @@ dmitri.shuralyov.com/html/belt v0.0.0-20180602232347-f7d459c86be0/go.mod h1:JLBr
 dmitri.shuralyov.com/service/change v0.0.0-20181023043359-a85b471d5412/go.mod h1:a1inKt/atXimZ4Mv927x+r7UpyzRUf4emIoiiSC2TN4=
 dmitri.shuralyov.com/state v0.0.0-20180228185332-28bcc343414c/go.mod h1:0PRwlb0D6DFvNNtx+9ybjezNCa8XF0xaYcETyp6rHWU=
 git.apache.org/thrift.git v0.0.0-20180902110319-2566ecd5d999/go.mod h1:fPE2ZNJGynbRyZ4dJvy6G277gSllfV2HJqblrnkyeyg=
-github.com/4everland/diskv/v3 v3.0.6 h1:0Q2DAlMxP5YMZ2Pj2gWgGO0PZyzEZYi9osjVFOuuZUw=
-github.com/4everland/diskv/v3 v3.0.6/go.mod h1:bIWwUY0rM334vbH/Jo+ty6I7xe/TEsBRNW622VXWdXA=
 github.com/4everland/golog v0.0.7 h1:+BvNW7JAeP0iZHg0iZXDwmNVrCce5ySbyaz/7ZS3zUE=
 github.com/4everland/golog v0.0.7/go.mod h1:oY2xt03LDN6lOuIYg/+VpPllSqMY21mSU5jwb510kjY=
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=

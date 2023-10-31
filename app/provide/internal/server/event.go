@@ -3,8 +3,8 @@ package server
 import (
 	"context"
 	"errors"
-	"github.com/4everland/ipfs-servers/api/routing"
-	"github.com/4everland/ipfs-servers/app/provide/internal/conf"
+	"github.com/4everland/ipfs-top/api/routing"
+	"github.com/4everland/ipfs-top/app/provide/internal/conf"
 	"github.com/IBM/sarama"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/ipfs/go-cid"

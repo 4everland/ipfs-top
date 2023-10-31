@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 	"fmt"
-	pb "github.com/4everland/ipfs-servers/api/pin"
-	"github.com/4everland/ipfs-servers/third_party/coreunix"
+	pb "github.com/4everland/ipfs-top/api/pin"
+	"github.com/4everland/ipfs-top/third_party/coreunix"
 	"github.com/ipfs/boxo/blockservice"
 	blockstore "github.com/ipfs/boxo/blockstore"
 	"github.com/ipfs/boxo/coreiface/path"

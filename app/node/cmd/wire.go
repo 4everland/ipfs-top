@@ -5,11 +5,11 @@
 package main
 
 import (
-	"github.com/4everland/ipfs-servers/app/node/internal/biz"
-	"github.com/4everland/ipfs-servers/app/node/internal/conf"
-	"github.com/4everland/ipfs-servers/app/node/internal/data"
-	"github.com/4everland/ipfs-servers/app/node/internal/server"
-	"github.com/4everland/ipfs-servers/app/node/internal/service"
+	"github.com/4everland/ipfs-top/app/node/internal/biz"
+	"github.com/4everland/ipfs-top/app/node/internal/conf"
+	"github.com/4everland/ipfs-top/app/node/internal/data"
+	"github.com/4everland/ipfs-top/app/node/internal/server"
+	"github.com/4everland/ipfs-top/app/node/internal/service"
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/google/wire"

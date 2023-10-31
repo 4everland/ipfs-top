@@ -1,9 +1,9 @@
 package server
 
 import (
-	pb "github.com/4everland/ipfs-servers/api/blockstore"
-	"github.com/4everland/ipfs-servers/app/blockstore/internal/conf"
-	"github.com/4everland/ipfs-servers/app/blockstore/internal/services"
+	pb "github.com/4everland/ipfs-top/api/blockstore"
+	"github.com/4everland/ipfs-top/app/blockstore/internal/conf"
+	"github.com/4everland/ipfs-top/app/blockstore/internal/services"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/go-kratos/kratos/v2/middleware/tracing"

@@ -3,7 +3,7 @@ syntax = "proto3";
 import "errors/errors.proto";
 package api.ipfs.blockstore;
 
-option go_package = "github.com/4everland/ipfs-servers/api/blockstore;blockstore";
+option go_package = "github.com/4everland/ipfs-top/api/blockstore;blockstore";
 option java_multiple_files = true;
 option java_package = "api.ipfs.blockstore";
 

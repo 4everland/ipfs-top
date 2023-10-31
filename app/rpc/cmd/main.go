@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"github.com/4everland/golog"
-	"github.com/4everland/ipfs-servers/app/rpc/internal/conf"
-	"github.com/4everland/ipfs-servers/third_party/pprofx"
+	"github.com/4everland/ipfs-top/app/rpc/internal/conf"
+	"github.com/4everland/ipfs-top/third_party/pprofx"
 	"os"
 
 	"github.com/go-kratos/kratos/v2"

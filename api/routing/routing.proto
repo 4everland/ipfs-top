@@ -4,7 +4,7 @@ package api.ipfs.routing;
 
 import "google/protobuf/empty.proto";
 
-option go_package = "github.com/4everland/ipfs-servers/api/routing;routing";
+option go_package = "github.com/4everland/ipfs-top/api/routing;routing";
 option java_multiple_files = true;
 option java_package = "api.ipfs.routing";
 

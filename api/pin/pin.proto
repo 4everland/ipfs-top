@@ -4,7 +4,7 @@ package api.ipfs.pin;
 
 import "google/protobuf/empty.proto";
 
-option go_package = "github.com/4everland/ipfs-servers/api/pin;pin";
+option go_package = "github.com/4everland/ipfs-top/api/pin;pin";
 option java_multiple_files = true;
 option java_package = "api.ipfs.pin";
 

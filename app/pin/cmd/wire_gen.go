@@ -6,9 +6,9 @@
 package main
 
 import (
-	"github.com/4everland/ipfs-servers/app/pin/internal/conf"
-	"github.com/4everland/ipfs-servers/app/pin/internal/server"
-	"github.com/4everland/ipfs-servers/app/pin/internal/service"
+	"github.com/4everland/ipfs-top/app/pin/internal/conf"
+	"github.com/4everland/ipfs-top/app/pin/internal/server"
+	"github.com/4everland/ipfs-top/app/pin/internal/service"
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"
 )

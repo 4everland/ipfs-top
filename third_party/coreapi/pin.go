@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	pb "github.com/4everland/ipfs-servers/api/pin"
+	pb "github.com/4everland/ipfs-top/api/pin"
 	coreiface "github.com/ipfs/boxo/coreiface"
 	caopts "github.com/ipfs/boxo/coreiface/options"
 	"github.com/ipfs/boxo/coreiface/path"

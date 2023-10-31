@@ -1,7 +1,7 @@
 package data
 
 import (
-	"github.com/4everland/ipfs-servers/app/node/internal/conf"
+	"github.com/4everland/ipfs-top/app/node/internal/conf"
 	ds "github.com/ipfs/go-datastore"
 	leveldb "github.com/ipfs/go-ds-leveldb"
 	"github.com/syndtr/goleveldb/leveldb/filter"

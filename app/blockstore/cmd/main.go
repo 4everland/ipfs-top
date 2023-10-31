@@ -2,8 +2,8 @@ package main
 
 import (
 	"flag"
-	"github.com/4everland/ipfs-servers/app/blockstore/internal/conf"
-	"github.com/4everland/ipfs-servers/third_party/pprofx"
+	"github.com/4everland/ipfs-top/app/blockstore/internal/conf"
+	"github.com/4everland/ipfs-top/third_party/pprofx"
 	"github.com/go-kratos/kratos/v2/transport/http"
 	"os"
 

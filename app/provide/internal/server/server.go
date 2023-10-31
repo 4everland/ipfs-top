@@ -2,9 +2,9 @@ package server
 
 import (
 	"context"
-	"github.com/4everland/ipfs-servers/api/routing"
-	"github.com/4everland/ipfs-servers/app/provide/internal/conf"
-	"github.com/4everland/ipfs-servers/third_party/dag"
+	"github.com/4everland/ipfs-top/api/routing"
+	"github.com/4everland/ipfs-top/app/provide/internal/conf"
+	"github.com/4everland/ipfs-top/third_party/dag"
 	"github.com/IBM/sarama"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/go-kratos/kratos/v2/middleware/tracing"

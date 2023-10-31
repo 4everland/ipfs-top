@@ -3,9 +3,9 @@ package services
 import (
 	"context"
 	"errors"
-	pb "github.com/4everland/ipfs-servers/api/blockstore"
-	biz2 "github.com/4everland/ipfs-servers/app/blockstore/internal/biz"
-	"github.com/4everland/ipfs-servers/app/blockstore/internal/utils"
+	pb "github.com/4everland/ipfs-top/api/blockstore"
+	biz2 "github.com/4everland/ipfs-top/app/blockstore/internal/biz"
+	"github.com/4everland/ipfs-top/app/blockstore/internal/utils"
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	"google.golang.org/protobuf/types/known/emptypb"

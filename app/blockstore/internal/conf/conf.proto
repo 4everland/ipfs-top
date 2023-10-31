@@ -1,7 +1,7 @@
 syntax = "proto3";
 package ipfs.blockstore.api;
 
-option go_package = "ipfs-servers/app/blockstore/internal/conf;conf";
+option go_package = "ipfs-top/app/blockstore/internal/conf;conf";
 
 import "google/protobuf/duration.proto";
 

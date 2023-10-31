@@ -8,7 +8,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/routing"
 	"sync"
 
-	pb "github.com/4everland/ipfs-servers/api/routing"
+	pb "github.com/4everland/ipfs-top/api/routing"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 

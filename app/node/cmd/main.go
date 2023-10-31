@@ -2,10 +2,10 @@ package main
 
 import (
 	"flag"
-	"github.com/4everland/ipfs-servers/app/node/internal/conf"
-	"github.com/4everland/ipfs-servers/app/node/internal/server"
-	"github.com/4everland/ipfs-servers/third_party/logx"
-	"github.com/4everland/ipfs-servers/third_party/pprofx"
+	"github.com/4everland/ipfs-top/app/node/internal/conf"
+	"github.com/4everland/ipfs-top/app/node/internal/server"
+	"github.com/4everland/ipfs-top/third_party/logx"
+	"github.com/4everland/ipfs-top/third_party/pprofx"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/go-kratos/kratos/v2/transport/http"
 

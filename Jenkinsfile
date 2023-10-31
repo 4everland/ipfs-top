@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE_NAME = 'ipfs-servers'
+        DOCKER_IMAGE_NAME = 'ipfs-top'
         DOCKER_IMAGE = ''
         DEPLOY_IMAGE_NAME = ''
     }
@@ -41,7 +41,7 @@ pipeline {
                                     DOCKER_HUB_HOST = env.DOCKER_HUB_DEV_URL.replaceAll("https://", "").replaceAll("http://", "")
                                     sh "docker rmi ${DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}-${APP_NAME}"
                                     sh 'docker rmi ' + DOCKER_HUB_HOST + DEPLOY_IMAGE_NAME
-                                    sh 'docker image prune -f --filter label=stage=ipfs-servers'
+                                    sh 'docker image prune -f --filter label=stage=ipfs-top'
                                 }
                             }
                         }
@@ -78,7 +78,7 @@ pipeline {
                                     DOCKER_HUB_HOST = env.DOCKER_HUB_PROD_URL.replaceAll("https://", "").replaceAll("http://", "")
                                     sh "docker rmi ${DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}-${APP_NAME}"
                                     sh 'docker rmi ' + DOCKER_HUB_HOST + DEPLOY_IMAGE_NAME
-                                    sh 'docker image prune -f --filter label=stage=ipfs-servers'
+                                    sh 'docker image prune -f --filter label=stage=ipfs-top'
                                 }
                             }
                         }

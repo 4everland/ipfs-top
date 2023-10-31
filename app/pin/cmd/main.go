@@ -2,8 +2,8 @@ package main
 
 import (
 	"flag"
-	"github.com/4everland/ipfs-servers/app/pin/internal/conf"
-	"github.com/4everland/ipfs-servers/third_party/logx"
+	"github.com/4everland/ipfs-top/app/pin/internal/conf"
+	"github.com/4everland/ipfs-top/third_party/logx"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	"os"
 

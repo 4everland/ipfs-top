@@ -1,10 +1,10 @@
 package server
 
 import (
-	"github.com/4everland/ipfs-servers/api/routing"
-	"github.com/4everland/ipfs-servers/app/node/internal/conf"
-	"github.com/4everland/ipfs-servers/app/node/internal/service"
-	"github.com/4everland/ipfs-servers/enum"
+	"github.com/4everland/ipfs-top/api/routing"
+	"github.com/4everland/ipfs-top/app/node/internal/conf"
+	"github.com/4everland/ipfs-top/app/node/internal/service"
+	"github.com/4everland/ipfs-top/enum"
 	"github.com/go-kratos/kratos/v2/log"
 	md "github.com/go-kratos/kratos/v2/metadata"
 	"github.com/go-kratos/kratos/v2/middleware/logging"

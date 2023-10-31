@@ -2,10 +2,10 @@ package service
 
 import (
 	"context"
-	"github.com/4everland/ipfs-servers/app/rpc/internal/conf"
-	"github.com/4everland/ipfs-servers/third_party/coreapi"
-	"github.com/4everland/ipfs-servers/third_party/coreunix"
-	"github.com/4everland/ipfs-servers/third_party/dag"
+	"github.com/4everland/ipfs-top/app/rpc/internal/conf"
+	"github.com/4everland/ipfs-top/third_party/coreapi"
+	"github.com/4everland/ipfs-top/third_party/coreunix"
+	"github.com/4everland/ipfs-top/third_party/dag"
 	"github.com/IBM/sarama"
 	"github.com/google/wire"
 	"github.com/ipfs/boxo/blockservice"

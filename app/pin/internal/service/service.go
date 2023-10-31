@@ -2,9 +2,9 @@ package service
 
 import (
 	"context"
-	"github.com/4everland/ipfs-servers/app/pin/internal/conf"
-	"github.com/4everland/ipfs-servers/third_party/dag"
-	"github.com/4everland/ipfs-servers/third_party/datastore"
+	"github.com/4everland/ipfs-top/app/pin/internal/conf"
+	"github.com/4everland/ipfs-top/third_party/dag"
+	"github.com/4everland/ipfs-top/third_party/datastore"
 	"github.com/google/wire"
 	blockstore "github.com/ipfs/boxo/blockstore"
 	exchange "github.com/ipfs/boxo/exchange"

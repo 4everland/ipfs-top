@@ -1,9 +1,9 @@
 package service
 
 import (
-	"github.com/4everland/ipfs-servers/app/gateway/internal/biz"
-	"github.com/4everland/ipfs-servers/app/gateway/internal/conf"
-	"github.com/4everland/ipfs-servers/third_party/dag"
+	"github.com/4everland/ipfs-top/app/gateway/internal/biz"
+	"github.com/4everland/ipfs-top/app/gateway/internal/conf"
+	"github.com/4everland/ipfs-top/third_party/dag"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/ipfs/boxo/blockservice"
 	"github.com/ipfs/boxo/blockstore"

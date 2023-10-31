@@ -2,9 +2,9 @@ package main
 
 import (
 	"flag"
-	"github.com/4everland/ipfs-servers/app/gateway/internal/conf"
-	"github.com/4everland/ipfs-servers/third_party/logx"
-	"github.com/4everland/ipfs-servers/third_party/pprofx"
+	"github.com/4everland/ipfs-top/app/gateway/internal/conf"
+	"github.com/4everland/ipfs-top/third_party/logx"
+	"github.com/4everland/ipfs-top/third_party/pprofx"
 
 	"os"
 

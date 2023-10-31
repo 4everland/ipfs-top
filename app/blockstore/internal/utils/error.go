@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"github.com/4everland/ipfs-servers/api/blockstore"
+	"github.com/4everland/ipfs-top/api/blockstore"
 	ipld "github.com/ipfs/go-ipld-format"
 )
 

@@ -1,5 +1,5 @@
 FROM golang:alpine AS builder
-LABEL stage=4everland-ipfs-servers
+LABEL stage=4everland-ipfs-top
 ARG APP_NAME
 ENV CGO_ENABLED 0
 ENV GOOS linux

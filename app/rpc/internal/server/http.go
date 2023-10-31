@@ -1,9 +1,9 @@
 package server
 
 import (
-	"github.com/4everland/ipfs-servers/app/rpc/internal/conf"
-	service2 "github.com/4everland/ipfs-servers/app/rpc/internal/service"
-	"github.com/4everland/ipfs-servers/enum"
+	"github.com/4everland/ipfs-top/app/rpc/internal/conf"
+	service2 "github.com/4everland/ipfs-top/app/rpc/internal/service"
+	"github.com/4everland/ipfs-top/enum"
 	"github.com/go-kratos/kratos/v2/log"
 	md "github.com/go-kratos/kratos/v2/metadata"
 	"github.com/go-kratos/kratos/v2/middleware/logging"

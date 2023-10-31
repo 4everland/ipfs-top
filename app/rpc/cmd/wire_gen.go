@@ -6,10 +6,10 @@
 package main
 
 import (
-	"github.com/4everland/ipfs-servers/app/rpc/internal/conf"
-	"github.com/4everland/ipfs-servers/app/rpc/internal/server"
-	"github.com/4everland/ipfs-servers/app/rpc/internal/service"
-	"github.com/4everland/ipfs-servers/third_party/coreunix"
+	"github.com/4everland/ipfs-top/app/rpc/internal/conf"
+	"github.com/4everland/ipfs-top/app/rpc/internal/server"
+	"github.com/4everland/ipfs-top/app/rpc/internal/service"
+	"github.com/4everland/ipfs-top/third_party/coreunix"
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"
 )
