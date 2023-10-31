@@ -1,0 +1,9 @@
+s3:
+  endpoint: xxx
+  region: xxx
+  bucket: xxx
+  accessKey: xxx
+  secretKey: xxx
+arseeding:
+  gateway_addr: xxx
+  mnemonic: xxx

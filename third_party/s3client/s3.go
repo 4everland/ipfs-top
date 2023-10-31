@@ -20,6 +20,8 @@ const (
 type S3Storage struct {
 	bucket string
 	srv    *s3.S3
+
+	setting Setting
 }
 
 type S3Config interface {
@@ -30,7 +32,22 @@ type S3Config interface {
 	GetRegion() string
 }
 
-func NewS3Client(storage S3Config) *S3Storage {
+type Setting struct {
+	disableTransformKey bool
+}
+
+type Options func(s *Setting)
+
+func DisableTransformKeyOptions(s *Setting) {
+	s.disableTransformKey = true
+}
+
+func NewS3Client(storage S3Config, opts ...Options) *S3Storage {
+	s := Setting{}
+
+	for _, v := range opts {
+		v(&s)
+	}
 	sess := session.Must(session.NewSession())
 	awsConfig := &aws.Config{}
 	if storage.GetEndpoint() != "" {
@@ -65,6 +82,8 @@ func NewS3Client(storage S3Config) *S3Storage {
 	return &S3Storage{
 		srv:    srv,
 		bucket: bucket,
+
+		setting: s,
 	}
 }
 
@@ -117,6 +136,9 @@ func (storage *S3Storage) GetSize(ctx context.Context, key string) (int, error) 
 }
 
 func (storage *S3Storage) transformKey(key string) *string {
+	if storage.setting.disableTransformKey {
+		return &key
+	}
 	size := keyMaxSliceSize
 	if c := len(key) / keyBlockSize; c <= keyMaxSliceSize {
 		size = c

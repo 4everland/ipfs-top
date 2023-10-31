@@ -36,6 +36,7 @@ logs/
 
 #configs
 app/*/configs/config.yaml
+tasks/config.yaml
 
 # Develop tools
 .vscode/
