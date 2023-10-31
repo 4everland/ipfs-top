@@ -11,6 +11,8 @@ import (
 	grpc2 "github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/google/wire"
 	"github.com/ipfs/boxo/blockstore"
+	shell "github.com/ipfs/go-ipfs-http-client"
+	"github.com/multiformats/go-multiaddr"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"time"
@@ -23,6 +25,7 @@ var ProviderSet = wire.NewSet(
 	NewConsumer,
 	NewEventServer,
 	NewReproviderServer,
+	NewRPC,
 )
 
 func NewBlockStore(conf *conf.Data) blockstore.Blockstore {
@@ -34,24 +37,45 @@ func NewBlockStore(conf *conf.Data) blockstore.Blockstore {
 	return bs
 }
 
-func NewNodes(conf *conf.Data) []routing.RoutingClient {
+func NewNodes(c *conf.Data) []routing.RoutingClient {
 	nodes := make([]routing.RoutingClient, 0)
-	for _, endpoint := range conf.NodeAddr {
-		tlsOption := grpc.WithTransportCredentials(insecure.NewCredentials())
-		conn, err := grpc2.Dial(
-			context.Background(),
-			grpc2.WithEndpoint(endpoint),
-			grpc2.WithMiddleware(
-				tracing.Client(),
-				recovery.Recovery(),
-			),
-			grpc2.WithTimeout(time.Minute),
-			grpc2.WithOptions(tlsOption),
-		)
-		if err != nil {
-			panic(err)
+	for _, target := range c.Target {
+		if target.ServerType == conf.ServerType_GRPC {
+			tlsOption := grpc.WithTransportCredentials(insecure.NewCredentials())
+			conn, err := grpc2.Dial(
+				context.Background(),
+				grpc2.WithEndpoint(target.Endpoint),
+				grpc2.WithMiddleware(
+					tracing.Client(),
+					recovery.Recovery(),
+				),
+				grpc2.WithTimeout(time.Minute),
+				grpc2.WithOptions(tlsOption),
+			)
+			if err != nil {
+				panic(err)
+			}
+			nodes = append(nodes, routing.NewRoutingClient(conn))
 		}
-		nodes = append(nodes, routing.NewRoutingClient(conn))
+	}
+
+	return nodes
+}
+
+func NewRPC(c *conf.Data) []*shell.HttpApi {
+	nodes := make([]*shell.HttpApi, 0)
+	for _, target := range c.Target {
+		if target.ServerType == conf.ServerType_HTTP {
+			addr, err := multiaddr.NewMultiaddr(target.Endpoint)
+			if err != nil {
+				panic(err)
+			}
+			node, err := shell.NewApi(addr)
+			if err != nil {
+				panic(err)
+			}
+			nodes = append(nodes, node)
+		}
 	}
 
 	return nodes

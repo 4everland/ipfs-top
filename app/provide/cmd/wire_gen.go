@@ -20,11 +20,12 @@ import (
 
 // wireApp init task receiver server application.
 func wireApp(data *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
-	consumer := server.NewConsumer(data)
+	consumerGroup := server.NewConsumer(data)
 	v := server.NewNodes(data)
-	eventServer := server.NewEventServer(data, consumer, v)
+	v2 := server.NewRPC(data)
+	eventServer := server.NewEventServer(data, consumerGroup, v, v2)
 	blockstore := server.NewBlockStore(data)
-	reproviderServer := server.NewReproviderServer(blockstore, v)
+	reproviderServer := server.NewReproviderServer(blockstore, v, v2)
 	app := newApp(logger, eventServer, reproviderServer)
 	return app, func() {
 	}, nil

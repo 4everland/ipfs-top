@@ -5,12 +5,16 @@ import (
 	"github.com/4everland/ipfs-top/api/routing"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/ipfs/boxo/blockstore"
+	shell "github.com/ipfs/go-ipfs-http-client"
+	options2 "github.com/ipfs/interface-go-ipfs-core/options"
+	"github.com/ipfs/interface-go-ipfs-core/path"
 	"time"
 )
 
 type ReproviderServer struct {
-	nodes []routing.RoutingClient
-	bs    blockstore.Blockstore
+	nodes   []routing.RoutingClient
+	bs      blockstore.Blockstore
+	clients []*shell.HttpApi
 }
 
 func (server *ReproviderServer) Start(ctx context.Context) error {
@@ -46,6 +50,14 @@ func (server *ReproviderServer) reProvider(ctx context.Context) error {
 					log.NewHelper(log.DefaultLogger).WithContext(ctx).Errorf("reprovide %s error: %v", cid.String(), err)
 				}
 			}
+			for _, node := range server.clients {
+				if err := node.Dht().Provide(ctx, path.IpfsPath(cid), func(settings *options2.DhtProvideSettings) error {
+					settings.Recursive = false
+					return nil
+				}); err != nil {
+					log.NewHelper(log.DefaultLogger).WithContext(ctx).Errorf("reprovide %s error: %v:", cid.String(), err)
+				}
+			}
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -59,9 +71,11 @@ func (server *ReproviderServer) Stop(context.Context) error {
 func NewReproviderServer(
 	bs blockstore.Blockstore,
 	nodes []routing.RoutingClient,
+	clients []*shell.HttpApi,
 ) *ReproviderServer {
 	return &ReproviderServer{
-		nodes: nodes,
-		bs:    bs,
+		nodes:   nodes,
+		bs:      bs,
+		clients: clients,
 	}
 }

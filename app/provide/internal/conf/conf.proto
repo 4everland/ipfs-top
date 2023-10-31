@@ -3,6 +3,10 @@ package ipfs.node.conf;
 
 option go_package = "ipfs-top/app/node/internal/conf;conf";
 
+enum ServerType {
+  GRPC = 0;
+  HTTP = 1;
+}
 
 message Bootstrap {
   Data data = 1;
@@ -10,7 +14,7 @@ message Bootstrap {
 
 message Data {
   Kafka kafka = 1;
-  repeated string node_addr = 2;
+  repeated Target target = 2;
   string blockstore_uri = 3;
 }
 
@@ -18,4 +22,9 @@ message Kafka {
   repeated string addr = 1;
   string topic = 2;
   string group = 3;
+}
+
+message Target {
+  ServerType server_type = 1;
+  string endpoint = 2;
 }
