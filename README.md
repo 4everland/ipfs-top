@@ -1,6 +1,4 @@
-IPFS-Top
-
-# Description
+# IPFS-Top
 IPFS Top is a node program compatible with IPFS RPC and Gateway. It supports any abstract Block Store implementation. It contains the following parts:
 
 - RPC&Gateway: This is the part compatible with IPFS RPC and Gateway
