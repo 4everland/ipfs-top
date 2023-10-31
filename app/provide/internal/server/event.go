@@ -7,10 +7,10 @@ import (
 	"github.com/4everland/ipfs-top/app/provide/internal/conf"
 	"github.com/IBM/sarama"
 	"github.com/go-kratos/kratos/v2/log"
+	"github.com/ipfs/boxo/coreiface/options"
+	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/go-cid"
-	shell "github.com/ipfs/go-ipfs-http-client"
-	options2 "github.com/ipfs/interface-go-ipfs-core/options"
-	path "github.com/ipfs/interface-go-ipfs-core/path"
+	"github.com/ipfs/kubo/client/rpc"
 
 	"runtime"
 	"strings"
@@ -20,7 +20,7 @@ import (
 type EventServer struct {
 	conf     *conf.Kafka
 	nodes    []routing.RoutingClient
-	clients  []*shell.HttpApi
+	clients  []*rpc.HttpApi
 	consumer sarama.ConsumerGroup
 }
 
@@ -112,9 +112,9 @@ func (server *EventServer) Start(ctx context.Context) error {
 
 			for _, node := range server.clients {
 				wg.Add(1)
-				go func(r *shell.HttpApi) {
+				go func(r *rpc.HttpApi) {
 					defer wg.Done()
-					if err := r.Dht().Provide(ctx, path.IpfsPath(c), func(settings *options2.DhtProvideSettings) error {
+					if err := r.Dht().Provide(ctx, path.IpfsPath(c), func(settings *options.DhtProvideSettings) error {
 						settings.Recursive = false
 						return nil
 					}); err != nil {
@@ -152,7 +152,7 @@ func NewEventServer(
 	conf *conf.Data,
 	consumer sarama.ConsumerGroup,
 	nodes []routing.RoutingClient,
-	clients []*shell.HttpApi,
+	clients []*rpc.HttpApi,
 ) *EventServer {
 	return &EventServer{
 		conf:     conf.Kafka,

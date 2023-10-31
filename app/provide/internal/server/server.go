@@ -11,7 +11,7 @@ import (
 	grpc2 "github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/google/wire"
 	"github.com/ipfs/boxo/blockstore"
-	shell "github.com/ipfs/go-ipfs-http-client"
+	"github.com/ipfs/kubo/client/rpc"
 	"github.com/multiformats/go-multiaddr"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -62,15 +62,15 @@ func NewNodes(c *conf.Data) []routing.RoutingClient {
 	return nodes
 }
 
-func NewRPC(c *conf.Data) []*shell.HttpApi {
-	nodes := make([]*shell.HttpApi, 0)
+func NewRPC(c *conf.Data) []*rpc.HttpApi {
+	nodes := make([]*rpc.HttpApi, 0)
 	for _, target := range c.Target {
 		if target.ServerType == conf.ServerType_HTTP {
 			addr, err := multiaddr.NewMultiaddr(target.Endpoint)
 			if err != nil {
 				panic(err)
 			}
-			node, err := shell.NewApi(addr)
+			node, err := rpc.NewApi(addr)
 			if err != nil {
 				panic(err)
 			}
