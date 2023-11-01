@@ -1,0 +1,7 @@
+server:
+  http:
+    addr: 0.0.0.0:8080
+    timeout: 20s
+data:
+  rw:
+    uri: "blockstore:8081"

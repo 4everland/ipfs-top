@@ -1,0 +1,61 @@
+version: '3'
+services:
+  blockstore:
+    build:
+      context: ../../../
+      dockerfile: Dockerfile
+      args:
+        - APP_NAME=blockstore
+    ports:
+      - "8081:8081"
+    networks:
+      - ipfs_top_network
+    volumes:
+      - ./configs/blockstore-config.yaml:/runner/ipfs/configs/config.yaml
+  gateway:
+    build:
+      context: ../../../
+      dockerfile: Dockerfile
+      args:
+        - APP_NAME=gateway
+    ports:
+      - "8080:8080"
+    networks:
+      - ipfs_top_network
+    depends_on:
+      - blockstore
+    volumes:
+      - ./configs/gateway-config.yaml:/runner/ipfs/configs/config.yaml
+  node:
+    build:
+      context: ../../../
+      dockerfile: Dockerfile
+      args:
+        - APP_NAME=node
+    ports:
+      - "8083:8083"
+      - "8083:8083/udp"
+      - "8084:8084"
+    networks:
+      - ipfs_top_network
+    depends_on:
+      - blockstore
+    volumes:
+      - ./configs/node-config.yaml:/runner/ipfs/configs/config.yaml
+  rpc:
+    build:
+      context: ../../../
+      dockerfile: Dockerfile
+      args:
+        - APP_NAME=rpc
+    ports:
+      - "8086:8086"
+    networks:
+      - ipfs_top_network
+    depends_on:
+      - blockstore
+      - node
+    volumes:
+      - ./configs/rpc-config.yaml:/runner/ipfs/configs/config.yaml
+networks:
+  ipfs_top_network:
