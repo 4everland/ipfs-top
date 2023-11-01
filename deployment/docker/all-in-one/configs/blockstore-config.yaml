@@ -1,0 +1,26 @@
+server:
+  grpc:
+    addr: 0.0.0.0:8081
+    timeout: 100s
+  http:
+    addr: 0.0.0.0:8082
+    timeout: 100s
+data:
+  storage:
+    endpoint: "minio:9000"
+    region: "us-west-1"
+    bucket: "blockstore"
+    accessKey: "minioadmin"
+    secretKey: "minioadmin"
+    schemes: "http"
+  db:
+    type: LevelDB
+    leveldb:
+      path: "/data/blockstore/db/"
+  cache:
+    lruSize: 1024
+    basePath: "/data/blockstore/cache/"
+    indexPath: "/data/blockstore/index/"
+
+
+

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"github.com/4everland/diskv/v3"
 	"github.com/4everland/ipfs-top/app/gateway/internal/conf"
 	"github.com/4everland/ipfs-top/third_party/prom"
 	"github.com/4everland/ipfs-top/third_party/s3client"
