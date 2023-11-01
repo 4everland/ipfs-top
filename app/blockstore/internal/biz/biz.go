@@ -30,14 +30,14 @@ func NewRedisClient(data *conf.Data) (*redis.Client, error) {
 }
 
 func NewIndexStore(data *conf.Data) (BlockIndex, error) {
-	rd, err := NewRedisClient(data)
-	if err != nil {
-		return nil, err
-	}
 	switch data.GetDb().GetType() {
 	case conf.Data_TiKV:
 		return NewTiKv(data.GetDb().GetTikv().GetAddrs()...)
 	case conf.Data_PG:
+		rd, err := NewRedisClient(data)
+		if err != nil {
+			return nil, err
+		}
 		dsn := data.GetDb().GetPg().GetSourcesDsn()
 		sourceDials := make([]gorm.Dialector, len(dsn))
 		for i, dsn := range data.GetDb().GetPg().GetSourcesDsn() {

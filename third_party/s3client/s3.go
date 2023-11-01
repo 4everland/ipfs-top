@@ -28,6 +28,7 @@ type S3Config interface {
 	GetAccessKey() string
 	GetSecretKey() string
 	GetRegion() string
+	GetSchemes() string
 }
 
 func NewS3Client(storage S3Config) *S3Storage {
@@ -44,6 +45,10 @@ func NewS3Client(storage S3Config) *S3Storage {
 		awsConfig.WithCredentials(credentials.NewStaticCredentials(storage.GetAccessKey(), storage.GetSecretKey(), ""))
 	}
 
+	if storage.GetSchemes() == "http" {
+		awsConfig.WithDisableSSL(true)
+		awsConfig.WithS3ForcePathStyle(true)
+	}
 	srv := s3.New(sess, awsConfig)
 	bucket := storage.GetBucket()
 	_, err := srv.HeadBucket(&s3.HeadBucketInput{Bucket: &bucket})
