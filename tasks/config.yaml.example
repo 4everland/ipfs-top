@@ -4,6 +4,7 @@ s3:
   bucket: xxx
   accessKey: xxx
   secretKey: xxx
+  schemes: xxx
 arseeding:
   gateway_addr: xxx
   mnemonic: xxx

@@ -20,6 +20,7 @@ s3: // s3 bucket config
   bucket: xxx
   accessKey: xxx
   secretKey: xxx
+  schemes: xxx
 arseeding:
   gateway_addr: xxx //arseeding rpc 
   mnemonic: xxx     //the eth mnemonic  is used to sign data
