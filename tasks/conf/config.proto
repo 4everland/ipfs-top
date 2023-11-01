@@ -15,6 +15,7 @@ message S3 {
   string bucket = 3;
   string accessKey = 4;
   string secretKey = 5;
+  string schemes = 6;
 }
 
 message Arseeding {
