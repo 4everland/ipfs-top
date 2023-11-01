@@ -6,7 +6,7 @@ IPFS Top is a node program compatible with IPFS RPC and Gateway. It supports any
 - Block Store: This is an abstract implementation of the original Block Store of IPFS. It will support RocksDB, LevelDB, AWS S3, ARWeave, etc.
 
 ## Run with Docker Compose
-see documentation [here](deployment/README.md)
+see documentation [here](deployment/docker/README.md)
 ### Sync s3 file to arweave
 
 #### Config file
