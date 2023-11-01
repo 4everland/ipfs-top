@@ -1,5 +1,14 @@
 version: '3'
 services:
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    entrypoint: sh
+    command: -c 'mkdir -p /data/blockstore && minio server /data  --console-address :9001'
+    networks:
+      - ipfs_top_network
   blockstore:
     build:
       context: ../../../
@@ -10,6 +19,10 @@ services:
       - "8081:8081"
     networks:
       - ipfs_top_network
+    environment:
+      - OTEL_AGENT_ENABLED=false
+    depends_on:
+      - minio
     volumes:
       - ./configs/blockstore-config.yaml:/runner/ipfs/configs/config.yaml
   gateway:
@@ -22,6 +35,8 @@ services:
       - "8080:8080"
     networks:
       - ipfs_top_network
+    environment:
+      - OTEL_AGENT_ENABLED=false
     depends_on:
       - blockstore
     volumes:
@@ -38,6 +53,8 @@ services:
       - "8084:8084"
     networks:
       - ipfs_top_network
+    environment:
+      - OTEL_AGENT_ENABLED=false
     depends_on:
       - blockstore
     volumes:
@@ -52,6 +69,8 @@ services:
       - "8086:8086"
     networks:
       - ipfs_top_network
+    environment:
+      - OTEL_AGENT_ENABLED=false
     depends_on:
       - blockstore
       - node

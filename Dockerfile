@@ -1,4 +1,4 @@
-FROM golang:alpine AS builder
+FROM golang:alpine-1.20.10 AS builder
 LABEL stage=4everland-ipfs-top
 ARG APP_NAME
 ENV CGO_ENABLED 0

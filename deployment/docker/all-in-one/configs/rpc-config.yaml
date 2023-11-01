@@ -1,6 +1,7 @@
-http:
-  addr: 0.0.0.0:8086
-  timeout: 100s
+server:
+  http:
+    addr: 0.0.0.0:8086
+    timeout: 100s
 data:
   blockstore_uri: "blockstore:8081"
   exchange_endpoint: "node:8084"
