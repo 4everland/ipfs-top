@@ -26,8 +26,8 @@ func wireApp(confServer *conf.Server, data *conf.Data, logger log.Logger) (*krat
 	if err != nil {
 		return nil, nil, err
 	}
-	httpServer := server.NewGatewayServer(confServer, blocksBackend, logger)
-	app := newApp(logger, httpServer)
+	v := server.NewServer(confServer, blocksBackend, logger)
+	app := newApp(logger, v)
 	return app, func() {
 	}, nil
 }

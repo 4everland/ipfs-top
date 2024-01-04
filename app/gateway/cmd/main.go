@@ -5,6 +5,7 @@ import (
 	"github.com/4everland/ipfs-top/app/gateway/internal/conf"
 	"github.com/4everland/ipfs-top/third_party/logx"
 	"github.com/4everland/ipfs-top/third_party/pprofx"
+	"github.com/go-kratos/kratos/v2/transport"
 
 	"os"
 
@@ -13,8 +14,6 @@ import (
 	"github.com/go-kratos/kratos/v2/config/file"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/middleware/tracing"
-	"github.com/go-kratos/kratos/v2/transport/http"
-
 	_ "go.uber.org/automaxprocs"
 )
 
@@ -40,14 +39,14 @@ func init() {
 	flag.StringVar(&loglevel, "level", "info", "log level,  eg: -level info")
 }
 
-func newApp(logger log.Logger, hs *http.Server) *kratos.App {
+func newApp(logger log.Logger, hs []transport.Server) *kratos.App {
 	return kratos.New(
 		kratos.ID(id),
 		kratos.Name(Name),
 		kratos.Version(Version),
 		kratos.Metadata(map[string]string{}),
 		kratos.Logger(logger),
-		pprofx.Server(hs),
+		pprofx.Server(hs...),
 	)
 }
 

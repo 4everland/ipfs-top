@@ -15,8 +15,9 @@ message Server {
     string addr = 1;
     google.protobuf.Duration timeout = 2;
   }
-  HTTP http = 1;
 
+  HTTP http = 1;
+  HTTP metrics = 2;
 }
 
 message Data {
