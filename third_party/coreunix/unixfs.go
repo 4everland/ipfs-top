@@ -3,11 +3,14 @@ package coreunix
 import (
 	"context"
 	"fmt"
+	"github.com/4everland/ipfs-top/third_party/coreunix/options"
 	"github.com/ipfs/boxo/blockservice"
 	blockstore "github.com/ipfs/boxo/blockstore"
-	coreiface "github.com/ipfs/boxo/coreiface"
-	"github.com/ipfs/boxo/coreiface/options"
-	"github.com/ipfs/boxo/coreiface/path"
+	"github.com/ipfs/boxo/path"
+	"github.com/ipfs/boxo/path/resolver"
+	//coreiface "github.com/ipfs/boxo/coreiface"
+	//"github.com/ipfs/boxo/coreiface/options"
+	//"github.com/ipfs/boxo/coreiface/path"
 	exchange "github.com/ipfs/boxo/exchange"
 	offline "github.com/ipfs/boxo/exchange/offline"
 	"github.com/ipfs/boxo/fetcher"
@@ -19,8 +22,7 @@ import (
 	unixfile "github.com/ipfs/boxo/ipld/unixfs/file"
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	"github.com/ipfs/boxo/mfs"
-	ipfspath "github.com/ipfs/boxo/path"
-	ipfspathresolver "github.com/ipfs/boxo/path/resolver"
+	//ipafspathresolver "github.com/ipfs/boxo/path/resolver"
 	pin "github.com/ipfs/boxo/pinning/pinner"
 	"github.com/ipfs/go-cid"
 	ds "github.com/ipfs/go-datastore"
@@ -31,7 +33,6 @@ import (
 	"github.com/ipld/go-ipld-prime"
 	"github.com/ipld/go-ipld-prime/node/basicnode"
 	"github.com/ipld/go-ipld-prime/schema"
-	gopath "path"
 )
 
 type UnixFsServer struct {
@@ -45,8 +46,70 @@ type UnixFsServer struct {
 	bs  blockservice.BlockService
 }
 
+// FileType is an enum of possible UnixFS file types.
+type FileType int32
+
+const (
+	// TUnknown means the file type isn't known (e.g., it hasn't been
+	// resolved).
+	TUnknown FileType = iota
+	// TFile is a regular file.
+	TFile
+	// TDirectory is a directory.
+	TDirectory
+	// TSymlink is a symlink.
+	TSymlink
+)
+
+func (t FileType) String() string {
+	switch t {
+	case TUnknown:
+		return "unknown"
+	case TFile:
+		return "file"
+	case TDirectory:
+		return "directory"
+	case TSymlink:
+		return "symlink"
+	default:
+		return "<unknown file type>"
+	}
+}
+
+// DirEntry is a directory entry returned by `Ls`.
+type DirEntry struct {
+	Name string
+	Cid  cid.Cid
+
+	// Only filled when asked to resolve the directory entry.
+	Size   uint64   // The size of the file in bytes (or the size of the symlink).
+	Type   FileType // The type of the file.
+	Target string   // The symlink target (if a symlink).
+
+	Err error
+}
+
+// UnixfsAPI is the basic interface to immutable files in IPFS
+// NOTE: This API is heavily WIP, things are guaranteed to break frequently
+type UnixfsAPI interface {
+	// Add imports the data from the reader into merkledag file
+	//
+	// TODO: a long useful comment on how to use this for many different scenarios
+	Add(context.Context, files.Node, ...options.UnixfsAddOption) (path.ImmutablePath, error)
+
+	// Get returns a read-only handle to a file tree referenced by a path
+	//
+	// Note that some implementations of this API may apply the specified context
+	// to operations performed on the returned file
+	Get(context.Context, path.Path) (files.Node, error)
+
+	// Ls returns the list of links in a directory. Links aren't guaranteed to be
+	// returned in order
+	Ls(context.Context, path.Path, ...options.UnixfsLsOption) (<-chan DirEntry, error)
+}
+
 type DagResolve interface {
-	ResolvePath(ctx context.Context, p path.Path) (path.Resolved, error)
+	ResolvePath(ctx context.Context, p path.Path) (path.ImmutablePath, error)
 	ResolveNode(ctx context.Context, p path.Path) (format.Node, error)
 }
 
@@ -99,10 +162,10 @@ func newEmptyGCBlockstore() blockstore.GCBlockstore {
 	return &emptyGCBlockstore{blockstore.NewGCLocker(), blockstore.NewBlockstore(dssync.MutexWrap(ds.NewMapDatastore()))}
 }
 
-func (api *UnixFsServer) Add(ctx context.Context, files files.Node, opts ...options.UnixfsAddOption) (path.Resolved, error) {
+func (api *UnixFsServer) Add(ctx context.Context, files files.Node, opts ...options.UnixfsAddOption) (path.ImmutablePath, error) {
 	settings, prefix, err := options.UnixfsAddOptions(opts...)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
 	addblockstore := api.blockstore
@@ -121,7 +184,7 @@ func (api *UnixFsServer) Add(ctx context.Context, files files.Node, opts ...opti
 
 	fileAdder, err := NewAdder(ctx, pinning, addblockstore, dserv)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
 	fileAdder.Chunker = settings.Chunker
@@ -140,7 +203,7 @@ func (api *UnixFsServer) Add(ctx context.Context, files files.Node, opts ...opti
 	case options.TrickleLayout:
 		fileAdder.Trickle = true
 	default:
-		return nil, fmt.Errorf("unknown layout: %d", settings.Layout)
+		return path.ImmutablePath{}, fmt.Errorf("unknown layout: %d", settings.Layout)
 	}
 
 	if settings.OnlyHash {
@@ -149,11 +212,11 @@ func (api *UnixFsServer) Add(ctx context.Context, files files.Node, opts ...opti
 		// Use the same prefix for the "empty" MFS root as for the file rpc.
 		err = emptyDirNode.SetCidBuilder(fileAdder.CidBuilder)
 		if err != nil {
-			return nil, err
+			return path.ImmutablePath{}, err
 		}
 		mr, err := mfs.NewRoot(ctx, md, emptyDirNode, nil)
 		if err != nil {
-			return nil, err
+			return path.ImmutablePath{}, err
 		}
 
 		fileAdder.SetMfsRoot(mr)
@@ -161,19 +224,20 @@ func (api *UnixFsServer) Add(ctx context.Context, files files.Node, opts ...opti
 
 	nd, err := fileAdder.AddAllAndPin(ctx, files)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
 	if !settings.OnlyHash {
 		if err = api.provider.Provide(nd.Cid()); err != nil {
-			return nil, err
+			return path.ImmutablePath{}, err
 		}
 	}
 
-	return path.IpfsPath(nd.Cid()), nil
+	return path.FromCid(nd.Cid()), nil
 }
 
 func (api *UnixFsServer) Get(ctx context.Context, p path.Path) (files.Node, error) {
+
 	ses := newDagResolver(ctx, api.dag, api.bs)
 
 	nd, err := ses.ResolveNode(ctx, p)
@@ -184,7 +248,7 @@ func (api *UnixFsServer) Get(ctx context.Context, p path.Path) (files.Node, erro
 	return unixfile.NewUnixfsFile(ctx, ses.dag, nd)
 }
 
-func (api *UnixFsServer) Ls(ctx context.Context, p path.Path, opts ...options.UnixfsLsOption) (<-chan coreiface.DirEntry, error) {
+func (api *UnixFsServer) Ls(ctx context.Context, p path.Path, opts ...options.UnixfsLsOption) (<-chan DirEntry, error) {
 	settings, err := options.UnixfsLsOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -211,8 +275,8 @@ func (api *UnixFsServer) Ls(ctx context.Context, p path.Path, opts ...options.Un
 type dagResolver struct {
 	dag                  format.DAGService
 	unixFSFetcherFactory fetcher.Factory
-	ipldPathResolver     ipfspathresolver.Resolver
-	unixFSPathResolver   ipfspathresolver.Resolver
+	ipldPathResolver     resolver.Resolver
+	unixFSPathResolver   resolver.Resolver
 }
 
 func NewDagResolver(ctx context.Context, d format.NodeGetter, b blockservice.BlockService) *dagResolver {
@@ -230,52 +294,43 @@ func newDagResolver(ctx context.Context, d format.NodeGetter, b blockservice.Blo
 	return &dagResolver{
 		dag:                  merkledag.NewReadOnlyDagService(merkledag.NewSession(ctx, d)),
 		unixFSFetcherFactory: fsFetcher,
-		ipldPathResolver:     ipfspathresolver.NewBasicResolver(fetcherConfig),
-		unixFSPathResolver:   ipfspathresolver.NewBasicResolver(fsFetcher),
+		ipldPathResolver:     resolver.NewBasicResolver(fetcherConfig),
+		unixFSPathResolver:   resolver.NewBasicResolver(fsFetcher),
 	}
 }
 
-func (dr *dagResolver) ResolvePath(ctx context.Context, p path.Path) (path.Resolved, error) {
-	if _, ok := p.(path.Resolved); ok {
-		return p.(path.Resolved), nil
+func (dr *dagResolver) ResolvePath(ctx context.Context, p path.Path) (path.ImmutablePath, error) {
+	pp, err := path.NewImmutablePath(p)
+	if err != nil {
+		return path.ImmutablePath{}, err
 	}
-	if err := p.IsValid(); err != nil {
-		return nil, err
-	}
-
-	ipath := ipfspath.Path(p.String())
-	//if ipath.Segments()[0] != "ipfs" && ipath.Segments()[0] != "ipld" {
-	if ipath.Segments()[0] != "ipfs" && ipath.Segments()[0] != "ipld" {
-		return nil, fmt.Errorf("unsupported path namespace: %s", p.Namespace())
+	if pp.Segments()[0] != "ipfs" && pp.Segments()[0] != "ipld" {
+		return path.ImmutablePath{}, fmt.Errorf("unsupported path namespace: %s", p.Namespace())
 	}
 
-	var resolver ipfspathresolver.Resolver
-	if ipath.Segments()[0] == "ipld" {
-		resolver = dr.ipldPathResolver
+	var r resolver.Resolver
+	if pp.Segments()[0] == "ipld" {
+		r = dr.ipldPathResolver
 	} else {
-		resolver = dr.unixFSPathResolver
+		r = dr.unixFSPathResolver
 	}
 
-	node, rest, err := resolver.ResolveToLastNode(ctx, ipath)
+	node, _, err := r.ResolveToLastNode(ctx, pp)
 	if err != nil {
-		return nil, err
+		return path.ImmutablePath{}, err
 	}
 
-	root, err := cid.Parse(ipath.Segments()[1])
-	if err != nil {
-		return nil, err
-	}
-
-	return path.NewResolvedPath(ipath, node, root, gopath.Join(rest...)), nil
+	return path.FromCid(node), nil
 }
 
 func (dr *dagResolver) ResolveNode(ctx context.Context, p path.Path) (format.Node, error) {
+
 	rp, err := dr.ResolvePath(ctx, p)
 	if err != nil {
 		return nil, err
 	}
 
-	node, err := dr.dag.Get(ctx, rp.Cid())
+	node, err := dr.dag.Get(ctx, rp.RootCid())
 	if err != nil {
 		return nil, err
 	}
@@ -289,17 +344,17 @@ func (emptyProviderNotify) Provide(cid.Cid) error {
 	return nil
 }
 
-func processLink(ctx context.Context, dag format.NodeGetter, linkres ft.LinkResult, settings *options.UnixfsLsSettings) coreiface.DirEntry {
+func processLink(ctx context.Context, dag format.NodeGetter, linkres ft.LinkResult, settings *options.UnixfsLsSettings) DirEntry {
 
 	if linkres.Link != nil {
 		//span.SetAttributes(attribute.String("linkname", linkres.Link.Name), attribute.String("cid", linkres.Link.Cid.String()))
 	}
 
 	if linkres.Err != nil {
-		return coreiface.DirEntry{Err: linkres.Err}
+		return DirEntry{Err: linkres.Err}
 	}
 
-	lnk := coreiface.DirEntry{
+	lnk := DirEntry{
 		Name: linkres.Link.Name,
 		Cid:  linkres.Link.Cid,
 	}
@@ -307,7 +362,7 @@ func processLink(ctx context.Context, dag format.NodeGetter, linkres ft.LinkResu
 	switch lnk.Cid.Type() {
 	case cid.Raw:
 		// No need to check with raw leaves
-		lnk.Type = coreiface.TFile
+		lnk.Type = TFile
 		lnk.Size = linkres.Link.Size
 	case cid.DagProtobuf:
 		if settings.ResolveChildren {
@@ -325,11 +380,11 @@ func processLink(ctx context.Context, dag format.NodeGetter, linkres ft.LinkResu
 				}
 				switch d.Type() {
 				case ft.TFile, ft.TRaw:
-					lnk.Type = coreiface.TFile
+					lnk.Type = TFile
 				case ft.THAMTShard, ft.TDirectory, ft.TMetadata:
-					lnk.Type = coreiface.TDirectory
+					lnk.Type = TDirectory
 				case ft.TSymlink:
-					lnk.Type = coreiface.TSymlink
+					lnk.Type = TSymlink
 					lnk.Target = string(d.Data())
 				}
 				if !settings.UseCumulativeSize {
@@ -346,8 +401,8 @@ func processLink(ctx context.Context, dag format.NodeGetter, linkres ft.LinkResu
 	return lnk
 }
 
-func lsFromLinksAsync(ctx context.Context, dag format.NodeGetter, dir uio.Directory, settings *options.UnixfsLsSettings) (<-chan coreiface.DirEntry, error) {
-	out := make(chan coreiface.DirEntry, uio.DefaultShardWidth)
+func lsFromLinksAsync(ctx context.Context, dag format.NodeGetter, dir uio.Directory, settings *options.UnixfsLsSettings) (<-chan DirEntry, error) {
+	out := make(chan DirEntry, uio.DefaultShardWidth)
 
 	go func() {
 		defer close(out)
@@ -363,8 +418,8 @@ func lsFromLinksAsync(ctx context.Context, dag format.NodeGetter, dir uio.Direct
 	return out, nil
 }
 
-func lsFromLinks(ctx context.Context, dag format.NodeGetter, ndlinks []*format.Link, settings *options.UnixfsLsSettings) (<-chan coreiface.DirEntry, error) {
-	links := make(chan coreiface.DirEntry, len(ndlinks))
+func lsFromLinks(ctx context.Context, dag format.NodeGetter, ndlinks []*format.Link, settings *options.UnixfsLsSettings) (<-chan DirEntry, error) {
+	links := make(chan DirEntry, len(ndlinks))
 	for _, l := range ndlinks {
 		lr := ft.LinkResult{Link: &format.Link{Name: l.Name, Size: l.Size, Cid: l.Cid}}
 

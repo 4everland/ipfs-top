@@ -5,6 +5,7 @@ import (
 	"github.com/4everland/ipfs-top/app/provide/internal/conf"
 	"github.com/4everland/ipfs-top/app/provide/internal/server"
 	"github.com/4everland/ipfs-top/third_party/pprofx"
+	"github.com/go-kratos/kratos/v2/transport"
 	"os"
 
 	"github.com/4everland/golog"
@@ -38,13 +39,17 @@ func init() {
 }
 
 func newApp(logger log.Logger, es *server.EventServer, rs *server.ReproviderServer) *kratos.App {
+	var servers = []transport.Server{rs}
+	if es != nil {
+		servers = append(servers, es)
+	}
 	return kratos.New(
 		kratos.ID(id),
 		kratos.Name(Name),
 		kratos.Version(Version),
 		kratos.Metadata(map[string]string{}),
 		kratos.Logger(logger),
-		pprofx.Server(es, rs),
+		pprofx.Server(servers...),
 	)
 }
 

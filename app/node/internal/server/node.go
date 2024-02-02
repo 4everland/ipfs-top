@@ -4,18 +4,17 @@ import (
 	"context"
 	"encoding/base64"
 	"github.com/4everland/ipfs-top/app/node/internal/conf"
-	"github.com/4everland/ipfs-top/app/node/internal/data"
 	"github.com/4everland/ipfs-top/app/node/internal/service"
 	"github.com/4everland/ipfs-top/app/node/internal/types"
-	"github.com/4everland/ipfs-top/third_party/peering"
 	rcmgr2 "github.com/4everland/ipfs-top/third_party/rcmgr"
 	"github.com/go-kratos/kratos/v2/log"
+	"github.com/ipfs/boxo/bootstrap"
 	"github.com/ipfs/boxo/ipns"
+	"github.com/ipfs/boxo/peering"
 	"github.com/ipfs/go-datastore"
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
-	"github.com/libp2p/go-libp2p-kad-dht/providers"
 	record "github.com/libp2p/go-libp2p-record"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/host"
@@ -23,10 +22,10 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/peerstore"
 	"github.com/libp2p/go-libp2p/core/routing"
-	"github.com/libp2p/go-libp2p/p2p/host/peerstore/pstoremem"
 	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	"github.com/libp2p/go-libp2p/p2p/net/connmgr"
 	ma "github.com/multiformats/go-multiaddr"
+	"io"
 	"time"
 )
 
@@ -47,22 +46,24 @@ type NodeServer struct {
 	logger     *log.Helper
 
 	services []service.NodeService
+
+	Bootstrapper io.Closer
+}
+
+type RoutingOptionArgs struct {
+	Ctx                           context.Context
+	Host                          host.Host
+	Datastore                     datastore.Batching
+	Validator                     record.Validator
+	BootstrapPeers                []peer.AddrInfo
+	OptimisticProvide             bool
+	OptimisticProvideJobsPoolSize int
 }
 
 func NewNodeServer(serverConf *conf.Server, logger log.Logger, ds datastore.Batching, svcs ...service.NodeService) (*NodeServer, error) {
 	connManger, err := connmgr.NewConnManager(
 		int(serverConf.Node.LowWater), int(serverConf.Node.HighWater),
 		connmgr.WithGracePeriod(time.Duration(serverConf.Node.GracePeriod)*time.Second))
-	if err != nil {
-		return nil, err
-	}
-
-	ps, err := pstoremem.NewPeerstore()
-	if err != nil {
-		return nil, err
-	}
-
-	pmDs, err := data.NewLruMapDatastore()
 	if err != nil {
 		return nil, err
 	}
@@ -92,8 +93,6 @@ func NewNodeServer(serverConf *conf.Server, logger log.Logger, ds datastore.Batc
 		leveldbpath: serverConf.Node.LeveldbPath,
 		addrs:       serverConf.Node.MultiAddr,
 		priKey:      priKey,
-		ps:          ps,
-		pmDs:        pmDs,
 		connManger:  connManger,
 		peers:       addrs,
 		logger:      log.NewHelper(logger),
@@ -101,9 +100,29 @@ func NewNodeServer(serverConf *conf.Server, logger log.Logger, ds datastore.Batc
 	}, nil
 }
 
+func RoutingOption(mode dht.ModeOpt, args RoutingOptionArgs) (routing.Routing, error) {
+	dhtOpts := []dht.Option{
+		dht.Concurrency(10),
+		dht.Mode(mode),
+		dht.Datastore(args.Datastore),
+		dht.Validator(args.Validator),
+	}
+	if args.OptimisticProvide {
+		dhtOpts = append(dhtOpts, dht.EnableOptimisticProvide())
+	}
+	if args.OptimisticProvideJobsPoolSize != 0 {
+		dhtOpts = append(dhtOpts, dht.OptimisticProvideJobsPoolSize(args.OptimisticProvideJobsPoolSize))
+	}
+	return dual.New(
+		args.Ctx, args.Host,
+		dual.DHTOption(dhtOpts...),
+		dual.WanDHTOption(dht.BootstrapPeers(args.BootstrapPeers...)),
+	)
+}
+
 func (server *NodeServer) Start(ctx context.Context) (err error) {
 	bwc := metrics.NewBandwidthCounter()
-	limiter := rcmgr.NewFixedLimiter(rcmgr2.MakeResourceManagerConfig(0, 0, server.connManger.GetInfo().HighWater))
+	limiter := rcmgr.NewFixedLimiter(rcmgr2.MakeResourceManagerConfig(2*1024*1024*1024, 1024, server.connManger.GetInfo().HighWater))
 	mgr, err := rcmgr.NewResourceManager(limiter)
 	if err != nil {
 		return err
@@ -120,41 +139,30 @@ func (server *NodeServer) Start(ctx context.Context) (err error) {
 	}
 
 	opts = append(opts, libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
-		pms, er := providers.NewProviderManager(ctx, h.ID(), server.ps, server.pmDs)
-		if er != nil {
-			return nil, er
+		args := RoutingOptionArgs{
+			Ctx:       ctx,
+			Datastore: server.dhtDs,
+			Validator: record.NamespacedValidator{
+				"pk":   record.PublicKeyValidator{},
+				"ipns": ipns.Validator{KeyBook: h.Peerstore()},
+			},
+			BootstrapPeers:                server.peers,
+			OptimisticProvide:             true,
+			OptimisticProvideJobsPoolSize: 100,
 		}
-		server.h, err = libp2p.New(
-			libp2p.NoListenAddrs,
-			libp2p.BandwidthReporter(bwc),
-			libp2p.DefaultTransports,
-			libp2p.DefaultMuxers,
-		)
-		if err != nil {
-			return nil, err
-		}
+		args.Host = h
+		r, err := RoutingOption(dht.ModeServer, args)
+		server.rt = r
+		return r, err
 
-		nodeDht, err := dual.New(context.Background(), server.h,
-			dual.DHTOption(
-				dht.ProtocolPrefix(dht.DefaultPrefix),
-				dht.Validator(record.NamespacedValidator{
-					"pk":   record.PublicKeyValidator{},
-					"ipns": ipns.Validator{KeyBook: h.Peerstore()},
-				}),
-				dht.Datastore(server.dhtDs),
-				dht.ProviderStore(pms),
-				dht.Mode(dht.ModeAutoServer),
-				dht.BucketSize(20),
-				dht.EnableOptimisticProvide(),
-			))
-		if err != nil {
-			return nil, err
-		}
-		server.rt = nodeDht
-		return nodeDht, nil
 	}))
 
 	server.h, err = libp2p.New(opts...)
+	if err != nil {
+		return err
+	}
+
+	err = server.Bootstrap(bootstrap.DefaultBootstrapConfig)
 	if err != nil {
 		return err
 	}
@@ -176,6 +184,28 @@ func (server *NodeServer) Start(ctx context.Context) (err error) {
 		s.Watch(ctx, server)
 	}
 	return nil
+}
+
+func (server *NodeServer) Bootstrap(cfg bootstrap.BootstrapConfig) (err error) {
+	peerID, err := peer.IDFromPublicKey(server.priKey.GetPublic())
+	if err != nil {
+		return err
+	}
+	//n.Identity, n.PeerHost, n.Routing, cfg
+	if server.rt == nil {
+		return nil
+	}
+
+	if cfg.BootstrapPeers == nil {
+		cfg.BootstrapPeers = func() []peer.AddrInfo {
+			return server.peers
+		}
+	}
+	if server.Bootstrapper != nil {
+		server.Bootstrapper.Close() // stop previous bootstrap process.
+	}
+	server.Bootstrapper, err = bootstrap.Bootstrap(peerID, server.h, server.rt, cfg)
+	return err
 }
 
 func (server *NodeServer) Stop(ctx context.Context) (err error) {

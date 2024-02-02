@@ -18,7 +18,7 @@ func NewHttpServer(c *conf.Server, s *NodeServer, logger log.Logger) *http.Serve
 			recovery.Recovery(),
 			logging.Server(logger),
 			metadata.Server(metadata.WithConstants(md.Metadata{
-				enum.MetadataServerKind: enum.ServerKindHTTP,
+				enum.MetadataServerKind: []string{enum.ServerKindHTTP},
 			})),
 		),
 	}

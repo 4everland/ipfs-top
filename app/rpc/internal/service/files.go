@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"github.com/4everland/ipfs-top/third_party/coreunix"
 	httpctx "github.com/go-kratos/kratos/v2/transport/http"
-	"github.com/ipfs/boxo/coreiface/path"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	ft "github.com/ipfs/boxo/ipld/unixfs"
+	"github.com/ipfs/boxo/path"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
 	"net/http"
@@ -60,12 +60,12 @@ func (s *FilesService) Stat(ctx httpctx.Context) (err error) {
 		return cmds.Errorf(cmds.ErrClient, err.Error())
 	}
 
-	p, err := checkPath(req.Arg)
+	p, err := path.NewPath(req.Arg)
 	if err != nil {
 		return err
 	}
 
-	if !strings.HasPrefix(p, "/ipfs/") {
+	if !strings.HasPrefix(p.String(), "/ipfs/") {
 		return errors.New("path not support")
 	}
 
@@ -74,7 +74,7 @@ func (s *FilesService) Stat(ctx httpctx.Context) (err error) {
 		dagserv = s.offlineDagService
 	}
 
-	nd, err := s.dagResolver.ResolveNode(ctx, path.New(p))
+	nd, err := s.dagResolver.ResolveNode(ctx, p)
 	if err != nil {
 		return err
 	}
@@ -240,8 +240,11 @@ func walkBlock(ctx context.Context, dagserv ipld.DAGService, nd ipld.Node) (bool
 func (s *FilesService) ObjectStat(ctx httpctx.Context) (err error) {
 	w := ctx.Response()
 
-	p := ctx.Query().Get("arg")
-	nd, err := s.dagResolver.ResolveNode(ctx, path.New(p))
+	p, err := path.NewPath(ctx.Query().Get("arg"))
+	if err != nil {
+		return err
+	}
+	nd, err := s.dagResolver.ResolveNode(ctx, p)
 	if err != nil {
 		return err
 	}

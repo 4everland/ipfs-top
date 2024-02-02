@@ -2,12 +2,11 @@ package service
 
 import (
 	"github.com/4everland/ipfs-top/third_party/coreunix"
+	"github.com/4everland/ipfs-top/third_party/coreunix/options"
 	httpctx "github.com/go-kratos/kratos/v2/transport/http"
-	iface "github.com/ipfs/boxo/coreiface"
-	"github.com/ipfs/boxo/coreiface/options"
-	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/ipld/unixfs"
 	unixfs_pb "github.com/ipfs/boxo/ipld/unixfs/pb"
+	"github.com/ipfs/boxo/path"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	http2 "github.com/ipfs/go-ipfs-cmds/http"
 	"sort"
@@ -118,7 +117,11 @@ func (s *LsService) Ls(ctx httpctx.Context) (err error) {
 	}
 
 	for i, fpath := range req.Arg {
-		results, err := s.unixfs.Ls(ctx, path.New(fpath),
+		p, err := path.NewPath(fpath)
+		if err != nil {
+			return err
+		}
+		results, err := s.unixfs.Ls(ctx, p,
 			options.Unixfs.ResolveChildren(req.Size || req.ResolveType))
 		if err != nil {
 			return err
@@ -131,11 +134,11 @@ func (s *LsService) Ls(ctx httpctx.Context) (err error) {
 			}
 			var ftype unixfs_pb.Data_DataType
 			switch link.Type {
-			case iface.TFile:
+			case coreunix.TFile:
 				ftype = unixfs.TFile
-			case iface.TDirectory:
+			case coreunix.TDirectory:
 				ftype = unixfs.TDirectory
-			case iface.TSymlink:
+			case coreunix.TSymlink:
 				ftype = unixfs.TSymlink
 			}
 			lsLink := LsLink{

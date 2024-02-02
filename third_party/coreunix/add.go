@@ -4,14 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ipfs/boxo/path"
 	"io"
 	gopath "path"
 	"strconv"
 
 	bstore "github.com/ipfs/boxo/blockstore"
 	chunker "github.com/ipfs/boxo/chunker"
-	coreiface "github.com/ipfs/boxo/coreiface"
-	"github.com/ipfs/boxo/coreiface/path"
+	//coreiface "github.com/ipfs/boxo/coreiface"
+	//"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/files"
 	posinfo "github.com/ipfs/boxo/filestore/posinfo"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
@@ -33,6 +34,13 @@ var liveCacheSize = uint64(256 << 10)
 type Link struct {
 	Name, Hash string
 	Size       uint64
+}
+
+type AddEvent struct {
+	Name  string
+	Path  path.ImmutablePath `json:",omitempty"`
+	Bytes int64              `json:",omitempty"`
+	Size  string             `json:",omitempty"`
 }
 
 type syncer interface {
@@ -183,7 +191,7 @@ func (adder *Adder) PinRoot(ctx context.Context, root ipld.Node) error {
 		adder.tempRoot = rnk
 	}
 
-	adder.pinning.PinWithMode(ctx, rnk, pin.Recursive)
+	adder.pinning.PinWithMode(ctx, rnk, pin.Recursive, "")
 	return adder.pinning.Flush(ctx)
 }
 
@@ -474,7 +482,7 @@ func outputDagnode(out chan<- interface{}, name string, dn ipld.Node) error {
 		return err
 	}
 
-	out <- &coreiface.AddEvent{
+	out <- &AddEvent{
 		Path: o.Path,
 		Name: name,
 		Size: o.Size,
@@ -484,15 +492,15 @@ func outputDagnode(out chan<- interface{}, name string, dn ipld.Node) error {
 }
 
 // from core/commands/object.go
-func getOutput(dagnode ipld.Node) (*coreiface.AddEvent, error) {
+func getOutput(dagnode ipld.Node) (*AddEvent, error) {
 	c := dagnode.Cid()
 	s, err := dagnode.Size()
 	if err != nil {
 		return nil, err
 	}
 
-	output := &coreiface.AddEvent{
-		Path: path.IpfsPath(c),
+	output := &AddEvent{
+		Path: path.FromCid(c),
 		Size: strconv.FormatUint(s, 10),
 	}
 
@@ -513,7 +521,7 @@ func (i *progressReader) Read(p []byte) (int, error) {
 	i.bytes += int64(n)
 	if i.bytes-i.lastProgress >= progressReaderIncrement || err == io.EOF {
 		i.lastProgress = i.bytes
-		i.out <- &coreiface.AddEvent{
+		i.out <- &AddEvent{
 			Name:  i.path,
 			Bytes: i.bytes,
 		}

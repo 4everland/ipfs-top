@@ -4,19 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/4everland/ipfs-top/third_party/coreunix"
+	"github.com/4everland/ipfs-top/third_party/coreunix/options"
 	httpctx "github.com/go-kratos/kratos/v2/transport/http"
-	iface "github.com/ipfs/boxo/coreiface"
-	"github.com/ipfs/boxo/coreiface/options"
-	"github.com/ipfs/boxo/coreiface/path"
+	"github.com/ipfs/boxo/path"
 	"net/http"
 )
 
 type PinService struct {
-	pinning  iface.PinAPI
+	pinning  coreunix.PinAPI
 	resolver coreunix.DagResolve
 }
 
-func NewPinService(pinning iface.PinAPI, resolver coreunix.DagResolve) *PinService {
+func NewPinService(pinning coreunix.PinAPI, resolver coreunix.DagResolve) *PinService {
 	return &PinService{pinning: pinning, resolver: resolver}
 }
 
@@ -64,14 +63,16 @@ type PinAddResponse struct {
 func (s *PinService) addMany(ctx context.Context, paths []string, recursive bool) ([]string, error) {
 	added := make([]string, len(paths))
 	for i, b := range paths {
-		rp, err := s.resolver.ResolvePath(ctx, path.New(b))
+		p, err := path.NewPath(b)
 		if err != nil {
 			return nil, err
 		}
+		rp, err := s.resolver.ResolvePath(ctx, p)
+
 		if err := s.pinning.Add(ctx, rp, options.Pin.Recursive(recursive)); err != nil {
 			return nil, err
 		}
-		added[i] = rp.Cid().String()
+		added[i] = rp.RootCid().String()
 	}
 
 	return added, nil

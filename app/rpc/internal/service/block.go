@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/4everland/ipfs-top/third_party/coreunix"
+	"github.com/4everland/ipfs-top/third_party/coreunix/options"
 	httpctx "github.com/go-kratos/kratos/v2/transport/http"
 	"github.com/ipfs/boxo/blockservice"
-	"github.com/ipfs/boxo/coreiface/options"
-	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/files"
+	"github.com/ipfs/boxo/path"
 	blocks "github.com/ipfs/go-block-format"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	http2 "github.com/ipfs/go-ipfs-cmds/http"
@@ -175,13 +175,20 @@ func (s *BlocksService) BlockGet(ctx httpctx.Context) (err error) {
 	if req.Arg == "" {
 		return errors.New("argument \"arg\" is required")
 	}
-
-	rp, err := s.dagResolver.ResolvePath(ctx, path.New(req.Arg))
+	p1, err := path.NewPath(req.Arg)
+	if err != nil {
+		return err
+	}
+	p, err := path.NewImmutablePath(p1)
+	if err != nil {
+		return err
+	}
+	rp, err := s.dagResolver.ResolvePath(ctx, p)
 	if err != nil {
 		return err
 	}
 
-	b, err := s.bs.GetBlock(ctx, rp.Cid())
+	b, err := s.bs.GetBlock(ctx, rp.RootCid())
 	if err != nil {
 		return err
 	}

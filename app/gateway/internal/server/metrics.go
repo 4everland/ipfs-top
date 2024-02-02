@@ -18,7 +18,7 @@ func NewMetricsServer(c *conf.Server, logger log.Logger) *http.Server {
 			recovery.Recovery(),
 			logging.Server(logger),
 			metadata.Server(metadata.WithConstants(md.Metadata{
-				enum.MetadataServerKind: enum.ServerKindHTTP,
+				enum.MetadataServerKind: []string{enum.ServerKindHTTP},
 			})),
 		),
 	}

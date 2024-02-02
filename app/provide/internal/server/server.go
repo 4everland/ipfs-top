@@ -58,6 +58,9 @@ func NewNodes(conf *conf.Data) []routing.RoutingClient {
 }
 
 func NewConsumer(conf *conf.Data) sarama.ConsumerGroup {
+	if !conf.EnableProvider {
+		return nil
+	}
 	config := sarama.NewConfig()
 	config.Net.TLS.Enable = false
 	config.Consumer.Return.Errors = false

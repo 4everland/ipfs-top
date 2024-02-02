@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	pb "github.com/4everland/ipfs-top/api/pin"
-	coreiface "github.com/ipfs/boxo/coreiface"
-	caopts "github.com/ipfs/boxo/coreiface/options"
-	"github.com/ipfs/boxo/coreiface/path"
+	"github.com/4everland/ipfs-top/third_party/coreunix"
+	"github.com/4everland/ipfs-top/third_party/coreunix/options"
+	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/go-cid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -17,7 +17,7 @@ type grpcPin struct {
 	client pb.PinClient
 }
 
-func NewPinAPI(endpoint string) (coreiface.PinAPI, error) {
+func NewPinAPI(endpoint string) (coreunix.PinAPI, error) {
 	tlsOption := grpc.WithTransportCredentials(insecure.NewCredentials())
 
 	conn, err := grpc.Dial(endpoint, tlsOption)
@@ -29,8 +29,8 @@ func NewPinAPI(endpoint string) (coreiface.PinAPI, error) {
 	}, nil
 }
 
-func (gp *grpcPin) Add(ctx context.Context, p path.Path, opts ...caopts.PinAddOption) error {
-	settings, err := caopts.PinAddOptions(opts...)
+func (gp *grpcPin) Add(ctx context.Context, p path.Path, opts ...options.PinAddOption) error {
+	settings, err := options.PinAddOptions(opts...)
 	if err != nil {
 		return err
 	}
@@ -43,8 +43,8 @@ func (gp *grpcPin) Add(ctx context.Context, p path.Path, opts ...caopts.PinAddOp
 	return err
 }
 
-func (gp *grpcPin) IsPinned(ctx context.Context, p path.Path, opts ...caopts.PinIsPinnedOption) (string, bool, error) {
-	settings, err := caopts.PinIsPinnedOptions(opts...)
+func (gp *grpcPin) IsPinned(ctx context.Context, p path.Path, opts ...options.PinIsPinnedOption) (string, bool, error) {
+	settings, err := options.PinIsPinnedOptions(opts...)
 	if err != nil {
 		return "", false, err
 	}
@@ -60,8 +60,8 @@ func (gp *grpcPin) IsPinned(ctx context.Context, p path.Path, opts ...caopts.Pin
 	return resp.Cid, resp.IsPinned, nil
 }
 
-func (gp *grpcPin) Rm(ctx context.Context, p path.Path, opts ...caopts.PinRmOption) error {
-	settings, err := caopts.PinRmOptions(opts...)
+func (gp *grpcPin) Rm(ctx context.Context, p path.Path, opts ...options.PinRmOption) error {
+	settings, err := options.PinRmOptions(opts...)
 	if err != nil {
 		return err
 	}
@@ -74,8 +74,8 @@ func (gp *grpcPin) Rm(ctx context.Context, p path.Path, opts ...caopts.PinRmOpti
 	return err
 }
 
-func (gp *grpcPin) Update(ctx context.Context, from path.Path, to path.Path, opts ...caopts.PinUpdateOption) error {
-	settings, err := caopts.PinUpdateOptions(opts...)
+func (gp *grpcPin) Update(ctx context.Context, from path.Path, to path.Path, opts ...options.PinUpdateOption) error {
+	settings, err := options.PinUpdateOptions(opts...)
 	if err != nil {
 		return err
 	}
@@ -91,11 +91,12 @@ func (gp *grpcPin) Update(ctx context.Context, from path.Path, to path.Path, opt
 
 type pinInfo struct {
 	pinType string
-	path    path.Resolved
+	name    string
+	path    path.ImmutablePath
 	err     error
 }
 
-func (p *pinInfo) Path() path.Resolved {
+func (p *pinInfo) Path() path.ImmutablePath {
 	return p.path
 }
 
@@ -103,12 +104,16 @@ func (p *pinInfo) Type() string {
 	return p.pinType
 }
 
+func (p *pinInfo) Name() string {
+	return p.name
+}
+
 func (p *pinInfo) Err() error {
 	return p.err
 }
 
-func (gp *grpcPin) Ls(ctx context.Context, opts ...caopts.PinLsOption) (<-chan coreiface.Pin, error) {
-	settings, err := caopts.PinLsOptions(opts...)
+func (gp *grpcPin) Ls(ctx context.Context, opts ...options.PinLsOption) (<-chan coreunix.Pin, error) {
+	settings, err := options.PinLsOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +125,7 @@ func (gp *grpcPin) Ls(ctx context.Context, opts ...caopts.PinLsOption) (<-chan c
 	}
 
 	cc, err := gp.client.Ls(ctx, &pb.LsReq{Type: settings.Type})
-	ch := make(chan coreiface.Pin)
+	ch := make(chan coreunix.Pin)
 	go func() {
 		defer cc.CloseSend()
 		for {
@@ -139,7 +144,7 @@ func (gp *grpcPin) Ls(ctx context.Context, opts ...caopts.PinLsOption) (<-chan c
 				} else {
 					ch <- &pinInfo{
 						pinType: recv.PinType,
-						path:    path.IpldPath(cid.MustParse(recv.Cid)),
+						path:    path.FromCid(cid.MustParse(recv.Cid)),
 					}
 				}
 
@@ -150,8 +155,8 @@ func (gp *grpcPin) Ls(ctx context.Context, opts ...caopts.PinLsOption) (<-chan c
 	return ch, nil
 }
 
-func (gp *grpcPin) Verify(ctx context.Context) (<-chan coreiface.PinStatus, error) {
+func (gp *grpcPin) Verify(ctx context.Context) (<-chan coreunix.PinStatus, error) {
 	//todo
-	ch := make(chan coreiface.PinStatus)
+	ch := make(chan coreunix.PinStatus)
 	return ch, nil
 }

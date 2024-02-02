@@ -12,8 +12,14 @@ message Data {
   Kafka kafka = 1;
   repeated string node_addr = 2;
   string blockstore_uri = 3;
-}
 
+  bool enable_provider = 4;
+  Pg pin_set = 5;
+}
+message Pg {
+  string enable = 1;
+  string sourcesDsn = 2;
+}
 message Kafka {
   repeated string addr = 1;
   string topic = 2;

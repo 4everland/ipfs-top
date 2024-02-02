@@ -10,7 +10,6 @@ import (
 	"github.com/google/wire"
 	"github.com/ipfs/boxo/blockservice"
 	blockstore "github.com/ipfs/boxo/blockstore"
-	iface "github.com/ipfs/boxo/coreiface"
 	exchange "github.com/ipfs/boxo/exchange"
 	offline "github.com/ipfs/boxo/exchange/offline"
 	"github.com/ipfs/boxo/ipld/merkledag"
@@ -101,7 +100,7 @@ func NewKafkaProducer(kafka *conf.Kafka) sarama.AsyncProducer {
 	return asyncProducer
 }
 
-func NewPinAPI(config *conf.Data) iface.PinAPI {
+func NewPinAPI(config *conf.Data) coreunix.PinAPI {
 	if config.GetPinEndpoint() == "" {
 		return nil
 	}

@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"github.com/4everland/ipfs-top/third_party/coreunix"
 	httpctx "github.com/go-kratos/kratos/v2/transport/http"
-	iface "github.com/ipfs/boxo/coreiface"
-	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/files"
+	"github.com/ipfs/boxo/path"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	http2 "github.com/ipfs/go-ipfs-cmds/http"
 	"io"
@@ -68,14 +67,18 @@ func (s *CatService) Cat(ctx httpctx.Context) (err error) {
 	return res.Emit(reader)
 }
 
-func cat(ctx context.Context, api iface.UnixfsAPI, paths []string, offset int64, max int64) ([]io.Reader, uint64, error) {
+func cat(ctx context.Context, api coreunix.UnixfsAPI, paths []string, offset int64, max int64) ([]io.Reader, uint64, error) {
 	readers := make([]io.Reader, 0, len(paths))
 	length := uint64(0)
 	if max == 0 {
 		return nil, 0, nil
 	}
 	for _, p := range paths {
-		f, err := api.Get(ctx, path.New(p))
+		pp, err := path.NewPath(p)
+		if err != nil {
+			return nil, 0, err
+		}
+		f, err := api.Get(ctx, pp)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -85,9 +88,9 @@ func cat(ctx context.Context, api iface.UnixfsAPI, paths []string, offset int64,
 		case files.File:
 			file = f
 		case files.Directory:
-			return nil, 0, iface.ErrIsDir
+			return nil, 0, coreunix.ErrIsDir
 		default:
-			return nil, 0, iface.ErrNotSupported
+			return nil, 0, coreunix.ErrNotSupported
 		}
 
 		fsize, err := file.Size()

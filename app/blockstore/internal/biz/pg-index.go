@@ -37,15 +37,17 @@ type PgIndexStore struct {
 
 func NewPg(db *gorm.DB, rd *red.Client, enableBloomQuery bool) (BlockIndex, error) {
 
-	for i := 0; i < numberOfShards; i++ {
-		exists, err := rd.Exists(context.Background(), bloomFilterKey(i)).Result()
-		if err != nil {
-			return nil, err
-		}
-		if exists == 0 {
-			err = rd.BFReserve(context.Background(), bloomFilterKey(i), BloomErrorRatio, BloomSize).Err()
+	if enableBloomQuery {
+		for i := 0; i < numberOfShards; i++ {
+			exists, err := rd.Exists(context.Background(), bloomFilterKey(i)).Result()
 			if err != nil {
 				return nil, err
+			}
+			if exists == 0 {
+				err = rd.BFReserve(context.Background(), bloomFilterKey(i), BloomErrorRatio, BloomSize).Err()
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
@@ -59,20 +61,23 @@ func NewPg(db *gorm.DB, rd *red.Client, enableBloomQuery bool) (BlockIndex, erro
 }
 
 func (pg *PgIndexStore) Put(ctx context.Context, cid string, v IndexValue) error {
-	err := pg.rd.BFAdd(ctx, bloomFilterKey(cid2TableIndex(cid)), cid).Err()
-	if err != nil {
-		return err
+	if pg.enableBloomQuery {
+		err := pg.rd.BFAdd(ctx, bloomFilterKey(cid2TableIndex(cid)), cid).Err()
+		if err != nil {
+			return err
+		}
 	}
 
-	if err = pg.db.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&PgIndexValue{
+	if err := pg.db.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&PgIndexValue{
 		Cid:  cid,
 		Size: v.size,
 	}).Error; err != nil {
 		return err
 	}
-
-	if err = pg.rd.Set(ctx, indexCacheKey(cid), v.size, time.Second*10).Err(); err != nil {
-		return err
+	if pg.enableBloomQuery {
+		if err := pg.rd.Set(ctx, indexCacheKey(cid), v.size, time.Second*10).Err(); err != nil {
+			return err
+		}
 	}
 
 	return nil

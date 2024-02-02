@@ -135,6 +135,9 @@ func NewEventServer(
 	consumer sarama.ConsumerGroup,
 	nodes []routing.RoutingClient,
 ) *EventServer {
+	if !conf.EnableProvider {
+		return nil
+	}
 	return &EventServer{
 		conf:     conf.Kafka,
 		consumer: consumer,

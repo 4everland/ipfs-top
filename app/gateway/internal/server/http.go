@@ -18,7 +18,7 @@ func NewGatewayServer(c *conf.Server, gw *gateway.BlocksBackend, logger log.Logg
 			recovery.Recovery(),
 			logging.Server(logger),
 			metadata.Server(metadata.WithConstants(md.Metadata{
-				enum.MetadataServerKind: enum.ServerKindHTTP,
+				enum.MetadataServerKind: []string{enum.ServerKindHTTP},
 			})),
 		),
 		//http.RequestDecoder(middleware.TransformAdderRequest),

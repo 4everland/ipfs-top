@@ -20,7 +20,7 @@ func NewContentRoutingGRPCServer(c *conf.Server, routingSvc *service.RoutingServ
 		grpc.Middleware(
 			recovery.Recovery(),
 			metadata.Server(metadata.WithConstants(md.Metadata{
-				enum.MetadataServerKind: enum.ServerKindGRPC,
+				enum.MetadataServerKind: []string{enum.ServerKindGRPC},
 			})),
 			logging.Server(logger),
 			tracing.Server(),

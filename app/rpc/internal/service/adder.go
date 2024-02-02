@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/4everland/ipfs-top/third_party/coreunix"
+	"github.com/4everland/ipfs-top/third_party/coreunix/options"
 	httpctx "github.com/go-kratos/kratos/v2/transport/http"
-	coreiface "github.com/ipfs/boxo/coreiface"
-	"github.com/ipfs/boxo/coreiface/options"
+	//coreiface "github.com/ipfs/boxo/coreiface"
 	"github.com/ipfs/boxo/files"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	http2 "github.com/ipfs/go-ipfs-cmds/http"
@@ -151,16 +151,12 @@ func (a *AdderService) Add(ctx httpctx.Context) (err error) {
 		}()
 
 		for event := range events {
-			output, ok := event.(*coreiface.AddEvent)
+			output, ok := event.(*coreunix.AddEvent)
 			if !ok {
 				return fmt.Errorf("unknown event type")
 			}
 
-			h := ""
-			if output.Path != nil {
-				h = output.Path.Cid().String()
-				//h = enc.Encode(output.Path.Cid())
-			}
+			h := output.Path.RootCid().String()
 
 			if !dir && addit.Name() != "" {
 				output.Name = addit.Name()

@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"github.com/4everland/ipfs-top/third_party/coreunix"
 	httpctx "github.com/go-kratos/kratos/v2/transport/http"
-	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/files"
 	"github.com/ipfs/boxo/ipld/merkledag"
+	"github.com/ipfs/boxo/path"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -20,7 +20,6 @@ import (
 	ipldp "github.com/ipld/go-ipld-prime"
 	"github.com/ipld/go-ipld-prime/multicodec"
 	"github.com/ipld/go-ipld-prime/node/basicnode"
-	"github.com/ipld/go-ipld-prime/traversal"
 	mc "github.com/multiformats/go-multicodec"
 	"io"
 	"mime"
@@ -224,13 +223,16 @@ func (s *DagService) DagGet(ctx httpctx.Context) (err error) {
 	if err := codec.Set(req.OutputCodec); err != nil {
 		return err
 	}
-
-	rp, err := s.dagResolver.ResolvePath(ctx, path.New(req.Arg))
+	pp, err := path.NewPath(req.Arg)
+	if err != nil {
+		return err
+	}
+	rp, err := s.dagResolver.ResolvePath(ctx, pp)
 	if err != nil {
 		return err
 	}
 
-	obj, err := s.dag.Get(ctx, rp.Cid())
+	obj, err := s.dag.Get(ctx, rp.RootCid())
 	if err != nil {
 		return err
 	}
@@ -241,15 +243,6 @@ func (s *DagService) DagGet(ctx httpctx.Context) (err error) {
 	}
 
 	finalNode := universal.(ipldp.Node)
-
-	if len(rp.Remainder()) > 0 {
-		remainderPath := ipldp.ParsePath(rp.Remainder())
-
-		finalNode, err = traversal.Get(finalNode, remainderPath)
-		if err != nil {
-			return err
-		}
-	}
 
 	encoder, err := multicodec.LookupEncoder(uint64(codec))
 	if err != nil {
