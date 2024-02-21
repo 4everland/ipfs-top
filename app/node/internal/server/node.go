@@ -120,7 +120,7 @@ func (server *NodeServer) Start(ctx context.Context) (err error) {
 	}
 
 	opts = append(opts, libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
-		pms, er := providers.NewProviderManager(ctx, h.ID(), server.ps, server.pmDs)
+		pms, er := providers.NewProviderManager(h.ID(), server.ps, server.pmDs)
 		if er != nil {
 			return nil, er
 		}
