@@ -92,7 +92,7 @@ func (server *ReproviderServer) reProvider(ctx context.Context) error {
 			if !ok {
 				return nil
 			}
-			cc.Type()
+			//cc.Type()
 			if cc.Prefix().Codec == cid.Raw {
 				product <- cc
 				continue
