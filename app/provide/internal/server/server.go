@@ -34,13 +34,16 @@ func NewBlockStore(conf *conf.Data) blockstore.Blockstore {
 	return bs
 }
 
-func NewNodes(conf *conf.Data) []routing.RoutingClient {
+func NewNodes(config *conf.Data) []routing.RoutingClient {
 	nodes := make([]routing.RoutingClient, 0)
-	for _, endpoint := range conf.NodeAddr {
+	for _, endpoint := range config.Target {
+		if endpoint.ServerType != conf.ServerType_GRPC {
+			continue
+		}
 		tlsOption := grpc.WithTransportCredentials(insecure.NewCredentials())
 		conn, err := grpc2.Dial(
 			context.Background(),
-			grpc2.WithEndpoint(endpoint),
+			grpc2.WithEndpoint(endpoint.Endpoint),
 			grpc2.WithMiddleware(
 				tracing.Client(),
 				recovery.Recovery(),
