@@ -62,6 +62,7 @@ func (server *ReproviderServer) reProvider(ctx context.Context) error {
 	ch, errCh := server.pin.AllKeys(ctx, time.Now())
 
 	product := make(chan cid.Cid, len(server.nodes))
+	defer close(product)
 	for _, node := range server.nodes {
 		go func(ctx context.Context, node routing.RoutingClient) {
 			errCount := 0
@@ -87,13 +88,18 @@ func (server *ReproviderServer) reProvider(ctx context.Context) error {
 	}
 	for {
 		select {
-		case cid, ok := <-ch:
+		case cc, ok := <-ch:
 			if !ok {
 				return nil
 			}
-			n, err := server.ng.Get(ctx, cid)
+			cc.Type()
+			if cc.Prefix().Codec == cid.Raw {
+				product <- cc
+				continue
+			}
+			n, err := server.ng.Get(ctx, cc)
 			if err != nil {
-				server.logger.WithContext(ctx).Errorf("reprovide %s error: %v", cid.String(), err)
+				server.logger.WithContext(ctx).Errorf("reprovide %s error: %v", cc.String(), err)
 				continue
 			}
 
