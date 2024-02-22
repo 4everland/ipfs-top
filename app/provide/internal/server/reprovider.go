@@ -9,6 +9,7 @@ import (
 	"github.com/ipfs/boxo/blockservice"
 	"github.com/ipfs/boxo/blockstore"
 	"github.com/ipfs/boxo/ipld/merkledag"
+	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	"time"
 )
@@ -20,6 +21,14 @@ type ReproviderServer struct {
 
 	pin    *data.PinSetRepo
 	logger *log.Helper
+}
+
+type ProviderConsume struct {
+	ready  chan bool
+	logger *log.Helper
+	//event  chan cid.Cid
+
+	client routing.RoutingClient
 }
 
 func (server *ReproviderServer) Start(ctx context.Context) error {
@@ -52,6 +61,30 @@ func (server *ReproviderServer) Start(ctx context.Context) error {
 func (server *ReproviderServer) reProvider(ctx context.Context) error {
 	ch, errCh := server.pin.AllKeys(ctx, time.Now())
 
+	product := make(chan cid.Cid, len(server.nodes))
+	for _, node := range server.nodes {
+		go func(ctx context.Context, node routing.RoutingClient) {
+			errCount := 0
+			for c := range product {
+				_, err := node.Provide(ctx, &routing.ProvideReq{
+					Cid:     &routing.Cid{Str: c.Bytes()},
+					Provide: true,
+				})
+				if err != nil {
+					errCount++
+					server.logger.WithContext(ctx).Errorf("provide %s error: %v", c.String(), err)
+					product <- c
+				} else {
+					continue
+				}
+				if errCount >= 10 {
+					time.Sleep(time.Second * 20)
+
+				}
+				errCount = 0
+			}
+		}(ctx, node)
+	}
 	for {
 		select {
 		case cid, ok := <-ch:
@@ -74,14 +107,16 @@ func (server *ReproviderServer) reProvider(ctx context.Context) error {
 				if nn == nil {
 					break
 				}
-				for _, node := range server.nodes {
-					if _, err = node.Provide(ctx, &routing.ProvideReq{
-						Cid:     &routing.Cid{Str: nn.Cid().Bytes()},
-						Provide: true,
-					}); err != nil {
-						server.logger.WithContext(ctx).Errorf("reprovide %s error: %v", cid.String(), err)
-					}
-				}
+				//provide to one node
+				product <- nn.Cid()
+				//for _, node := range server.nodes {
+				//	if _, err = node.Provide(ctx, &routing.ProvideReq{
+				//		Cid:     &routing.Cid{Str: nn.Cid().Bytes()},
+				//		Provide: true,
+				//	}); err != nil {
+				//		server.logger.WithContext(ctx).Errorf("reprovide %s error: %v", cid.String(), err)
+				//	}
+				//}
 			}
 		case err := <-errCh:
 			return err

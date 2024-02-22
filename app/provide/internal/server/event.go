@@ -10,7 +10,7 @@ import (
 	"github.com/ipfs/go-cid"
 	"runtime"
 	"strings"
-	"sync"
+	"time"
 )
 
 type EventServer struct {
@@ -88,23 +88,48 @@ func (server *EventServer) Start(ctx context.Context) error {
 		logger: logger,
 		event:  make(chan cid.Cid),
 	}
+	product := make(chan cid.Cid, len(server.nodes))
+	for _, node := range server.nodes {
+		go func(ctx context.Context, node routing.RoutingClient) {
+			errCount := 0
+			for c := range product {
+				_, err := node.Provide(ctx, &routing.ProvideReq{
+					Cid:     &routing.Cid{Str: c.Bytes()},
+					Provide: true,
+				})
+				if err != nil {
+					errCount++
+					log.NewHelper(log.DefaultLogger).WithContext(ctx).Errorf("provide %s error: %v", c.String(), err)
+					product <- c
+				} else {
+					continue
+				}
+				if errCount >= 10 {
+					log.NewHelper(log.DefaultLogger).Warnf("provide %s error count: %d", c.String(), errCount)
+					time.Sleep(time.Second * 20)
+				}
+				errCount = 0
+			}
+		}(ctx, node)
+	}
 
 	go func() {
 		for c := range consumer.event {
-			var wg sync.WaitGroup
-			for _, node := range server.nodes {
-				wg.Add(1)
-				go func(r routing.RoutingClient) {
-					defer wg.Done()
-					if _, err := r.Provide(ctx, &routing.ProvideReq{
-						Cid:     &routing.Cid{Str: c.Bytes()},
-						Provide: true,
-					}); err != nil {
-						log.NewHelper(log.DefaultLogger).WithContext(ctx).Errorf("provide %s error: %v:", c.String(), err)
-					}
-				}(node)
-			}
-			wg.Wait()
+			product <- c
+			//var wg sync.WaitGroup
+			//for _, node := range server.nodes {
+			//	wg.Add(1)
+			//	go func(r routing.RoutingClient) {
+			//		defer wg.Done()
+			//		if _, err := r.Provide(ctx, &routing.ProvideReq{
+			//			Cid:     &routing.Cid{Str: c.Bytes()},
+			//			Provide: true,
+			//		}); err != nil {
+			//			log.NewHelper(log.DefaultLogger).WithContext(ctx).Errorf("provide %s error: %v:", c.String(), err)
+			//		}
+			//	}(node)
+			//}
+			//wg.Wait()
 		}
 	}()
 
