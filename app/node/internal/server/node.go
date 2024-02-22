@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/base64"
 	"github.com/4everland/ipfs-top/app/node/internal/conf"
 	"github.com/4everland/ipfs-top/app/node/internal/service"
@@ -24,8 +25,16 @@ import (
 	"github.com/libp2p/go-libp2p/core/routing"
 	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	"github.com/libp2p/go-libp2p/p2p/net/connmgr"
+	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
+	"github.com/libp2p/go-libp2p/p2p/protocol/ping"
+	quic "github.com/libp2p/go-libp2p/p2p/transport/quic"
+	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
+	webrtc "github.com/libp2p/go-libp2p/p2p/transport/webrtc"
+	"github.com/libp2p/go-libp2p/p2p/transport/websocket"
+	webtransport "github.com/libp2p/go-libp2p/p2p/transport/webtransport"
 	ma "github.com/multiformats/go-multiaddr"
 	"io"
+	"os"
 	"time"
 )
 
@@ -48,6 +57,10 @@ type NodeServer struct {
 	services []service.NodeService
 
 	Bootstrapper io.Closer
+
+	ids identify.IDService
+
+	ping *ping.PingService
 }
 
 type RoutingOptionArgs struct {
@@ -68,14 +81,49 @@ func NewNodeServer(serverConf *conf.Server, logger log.Logger, ds datastore.Batc
 		return nil, err
 	}
 
-	b, err := base64.StdEncoding.DecodeString(serverConf.Node.PrivateKey)
-	if err != nil {
-		return nil, err
+	l := log.NewHelper(logger)
+	var sk crypto.PrivKey
+	privKey := serverConf.Node.PrivateKey
+	if privKey == "" {
+		keyPath := serverConf.Node.PrivateKeyPath
+		if keyPath != "" {
+			//load private key from file
+			skbytes, err := os.ReadFile(keyPath)
+			if err != nil {
+				return nil, err
+			}
+			privKey = string(skbytes)
+		}
 	}
+	if privKey == "" {
+		sk, _, err = crypto.GenerateEd25519Key(rand.Reader)
+		if err != nil {
+			return nil, err
+		}
+		skbytes, err := crypto.MarshalPrivateKey(sk)
+		if err != nil {
+			return nil, err
+		}
+		//save private key
+		privKey = base64.StdEncoding.EncodeToString(skbytes)
+		l.Infof("init private key: %s", privKey)
+		if serverConf.Node.PrivateKeyPath != "" {
+			err := os.WriteFile(serverConf.Node.PrivateKeyPath, []byte(privKey), 0644)
+			if err != nil {
+				l.Errorf("save private key to file error: %s", err)
+			}
+		}
+	} else {
+		b, err := base64.StdEncoding.DecodeString(privKey)
+		if err != nil {
+			return nil, err
+		}
 
-	priKey, err := crypto.UnmarshalPrivateKey(b)
-	if err != nil {
-		return nil, err
+		priKey, err := crypto.UnmarshalPrivateKey(b)
+		if err != nil {
+			return nil, err
+		}
+		sk = priKey
 	}
 
 	peers, err := getPeerAddrs(serverConf.Node.GetPeers())
@@ -92,10 +140,10 @@ func NewNodeServer(serverConf *conf.Server, logger log.Logger, ds datastore.Batc
 		dhtDs:       ds,
 		leveldbpath: serverConf.Node.LeveldbPath,
 		addrs:       serverConf.Node.MultiAddr,
-		priKey:      priKey,
+		priKey:      sk,
 		connManger:  connManger,
 		peers:       addrs,
-		logger:      log.NewHelper(logger),
+		logger:      l,
 		services:    svcs,
 	}, nil
 }
@@ -129,13 +177,18 @@ func (server *NodeServer) Start(ctx context.Context) (err error) {
 	}
 	opts := []libp2p.Option{
 		libp2p.ListenAddrStrings(server.addrs...),
-		libp2p.NATPortMap(),
+		//libp2p.NATPortMap(),
 		libp2p.ConnectionManager(server.connManger), //todo
 		libp2p.Identity(server.priKey),
 		libp2p.BandwidthReporter(bwc),
-		libp2p.DefaultTransports,
+		libp2p.Transport(tcp.NewTCPTransport, tcp.WithMetrics()),
+		libp2p.Transport(websocket.New),
+		libp2p.Transport(quic.NewTransport),
+		libp2p.Transport(webtransport.New),
+		libp2p.Transport(webrtc.New),
 		libp2p.DefaultMuxers,
 		libp2p.ResourceManager(mgr),
+		//libp2p.UserAgent("kubo/0.27.0"),
 	}
 
 	opts = append(opts, libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
@@ -179,6 +232,15 @@ func (server *NodeServer) Start(ctx context.Context) (err error) {
 	for _, addr := range server.h.Addrs() {
 		server.logger.Infof("addr: %s/p2p/%s", addr.String(), server.h.ID())
 	}
+
+	//ping service
+	server.ping = ping.NewPingService(server.h)
+	//id service
+	server.ids, err = identify.NewIDService(server.h)
+	if err != nil {
+		return err
+	}
+	server.ids.Start()
 
 	for _, s := range server.services {
 		s.Watch(ctx, server)

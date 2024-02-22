@@ -24,6 +24,7 @@ message Server {
     int64 low_water = 5;
     int64 high_water = 6;
     string leveldb_path = 7;
+    string private_key_path = 8;
   }
 
   message HTTP {

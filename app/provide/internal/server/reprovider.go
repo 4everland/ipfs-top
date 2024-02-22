@@ -23,15 +23,26 @@ type ReproviderServer struct {
 }
 
 func (server *ReproviderServer) Start(ctx context.Context) error {
+	initial := make(chan struct{}, 1)
+	ticker := time.NewTicker(time.Hour * 22)
+	initial <- struct{}{}
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
-		case <-time.NewTicker(time.Hour * 22).C:
+		case <-initial:
+			start := time.Now()
+			server.logger.WithContext(ctx).Infof("initial start reprovide loop at: %s", start.Format("2006-01-02 15:04:05"))
+			if err := server.reProvider(ctx); err != nil {
+				server.logger.WithContext(ctx).Errorf("initial reprovide loop error: %v", err)
+			}
+			server.logger.WithContext(ctx).Infof("initial finish reprovide loop at: %s", time.Now().Format("2006-01-02 15:04:05"))
+			initial = nil
+		case <-ticker.C:
 			start := time.Now()
 			server.logger.WithContext(ctx).Infof("start reprovide loop at: %s", start.Format("2006-01-02 15:04:05"))
 			if err := server.reProvider(ctx); err != nil {
-				server.logger.WithContext(ctx).Errorf("reprovide error: %v", err)
+				server.logger.WithContext(ctx).Errorf("reprovide loop error: %v", err)
 			}
 			server.logger.WithContext(ctx).Infof("finish reprovide loop at: %s", time.Now().Format("2006-01-02 15:04:05"))
 		}
