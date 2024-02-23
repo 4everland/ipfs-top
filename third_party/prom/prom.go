@@ -6,4 +6,6 @@ const (
 	BlockStoreSys = "blockstore"
 
 	InstanceLabelName = "instance"
+
+	ProviderSys = "provider"
 )

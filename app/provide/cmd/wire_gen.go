@@ -7,6 +7,7 @@
 package main
 
 import (
+	"github.com/4everland/ipfs-top/app/provide/internal/biz"
 	"github.com/4everland/ipfs-top/app/provide/internal/conf"
 	"github.com/4everland/ipfs-top/app/provide/internal/data"
 	"github.com/4everland/ipfs-top/app/provide/internal/server"
@@ -21,15 +22,17 @@ import (
 // Injectors from wire.go:
 
 // wireApp init task receiver server application.
-func wireApp(confData *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
+func wireApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
 	consumerGroup := server.NewConsumer(confData)
 	v := server.NewNodes(confData)
 	eventServer := server.NewEventServer(confData, consumerGroup, v)
 	blockstore := server.NewBlockStore(confData)
 	db := data.NewGormClient(confData, logger)
-	pinSetRepo := data.NewDataSetRepo(db, logger)
-	reproviderServer := server.NewReproviderServer(blockstore, v, pinSetRepo, logger)
-	app := newApp(logger, eventServer, reproviderServer)
+	pinSetRepo := data.NewDataSetRepo(db, confData, logger)
+	reProviderBiz := biz.NewReProviderBiz(blockstore, v, pinSetRepo, logger)
+	reproviderServer := server.NewReproviderServer(reProviderBiz)
+	httpServer := server.NewMetricsServer(confServer, logger)
+	app := newApp(logger, eventServer, reproviderServer, httpServer)
 	return app, func() {
 	}, nil
 }

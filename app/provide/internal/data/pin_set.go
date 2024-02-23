@@ -5,9 +5,11 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"github.com/4everland/ipfs-top/app/provide/internal/conf"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/ipfs/go-cid"
 	"gorm.io/gorm"
+	"strings"
 	"time"
 )
 
@@ -16,6 +18,8 @@ const CidTable = "cids"
 type PinSetRepo struct {
 	data *gorm.DB
 	log  *log.Helper
+
+	filterPrefixKeys []string
 }
 
 type Cids struct {
@@ -25,10 +29,12 @@ type Cids struct {
 	Pkey      JsonStringArray `gorm:"type:jsonb"`
 }
 
-func NewDataSetRepo(db *gorm.DB, l log.Logger) *PinSetRepo {
+func NewDataSetRepo(db *gorm.DB, conf *conf.Data, l log.Logger) *PinSetRepo {
 	return &PinSetRepo{
 		data: db,
 		log:  log.NewHelper(l),
+
+		filterPrefixKeys: conf.PinSet.FilterPrefix,
 	}
 }
 
@@ -53,6 +59,11 @@ func (d *PinSetRepo) AllKeys(ctx context.Context, endTime time.Time) (chan cid.C
 					continue
 				}
 				if len(c.Pkey) != 0 {
+					for _, p := range d.filterPrefixKeys {
+						if strings.HasPrefix(c.Pkey[0], p) {
+							continue
+						}
+					}
 					cc, err := cid.Decode(c.Cid)
 					if err != nil {
 						continue

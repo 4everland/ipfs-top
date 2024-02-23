@@ -6,6 +6,7 @@ import (
 	"github.com/4everland/ipfs-top/app/provide/internal/server"
 	"github.com/4everland/ipfs-top/third_party/pprofx"
 	"github.com/go-kratos/kratos/v2/transport"
+	"github.com/go-kratos/kratos/v2/transport/http"
 	"os"
 
 	"github.com/4everland/golog"
@@ -38,8 +39,8 @@ func init() {
 	flag.StringVar(&loglevel, "level", "info", "log level,  eg: -level info")
 }
 
-func newApp(logger log.Logger, es *server.EventServer, rs *server.ReproviderServer) *kratos.App {
-	var servers = []transport.Server{rs}
+func newApp(logger log.Logger, es *server.EventServer, rs *server.ReproviderServer, hs *http.Server) *kratos.App {
+	var servers = []transport.Server{rs, hs}
 	if es != nil {
 		servers = append(servers, es)
 	}
@@ -75,7 +76,7 @@ func main() {
 	if err := c.Scan(&bc); err != nil {
 		panic(err)
 	}
-	app, cleanup, err := wireApp(bc.Data, logger)
+	app, cleanup, err := wireApp(bc.Server, bc.Data, logger)
 	if err != nil {
 		panic(err)
 	}

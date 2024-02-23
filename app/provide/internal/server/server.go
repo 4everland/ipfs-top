@@ -23,6 +23,7 @@ var ProviderSet = wire.NewSet(
 	NewConsumer,
 	NewEventServer,
 	NewReproviderServer,
+	NewMetricsServer,
 )
 
 func NewBlockStore(conf *conf.Data) blockstore.Blockstore {
