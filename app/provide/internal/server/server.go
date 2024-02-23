@@ -1,25 +1,19 @@
 package server
 
 import (
-	"context"
-	"github.com/4everland/ipfs-top/api/routing"
 	"github.com/4everland/ipfs-top/app/provide/internal/conf"
 	"github.com/4everland/ipfs-top/third_party/dag"
 	"github.com/IBM/sarama"
-	"github.com/go-kratos/kratos/v2/middleware/recovery"
-	"github.com/go-kratos/kratos/v2/middleware/tracing"
-	grpc2 "github.com/go-kratos/kratos/v2/transport/grpc"
+
 	"github.com/google/wire"
 	"github.com/ipfs/boxo/blockstore"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+
 	"time"
 )
 
 // ProviderSet is server providers.
 var ProviderSet = wire.NewSet(
 	NewBlockStore,
-	NewNodes,
 	NewConsumer,
 	NewEventServer,
 	NewReproviderServer,
@@ -33,32 +27,6 @@ func NewBlockStore(conf *conf.Data) blockstore.Blockstore {
 	}
 
 	return bs
-}
-
-func NewNodes(config *conf.Data) []routing.RoutingClient {
-	nodes := make([]routing.RoutingClient, 0)
-	for _, endpoint := range config.Target {
-		if endpoint.ServerType != conf.ServerType_GRPC {
-			continue
-		}
-		tlsOption := grpc.WithTransportCredentials(insecure.NewCredentials())
-		conn, err := grpc2.Dial(
-			context.Background(),
-			grpc2.WithEndpoint(endpoint.Endpoint),
-			grpc2.WithMiddleware(
-				tracing.Client(),
-				recovery.Recovery(),
-			),
-			grpc2.WithTimeout(time.Minute),
-			grpc2.WithOptions(tlsOption),
-		)
-		if err != nil {
-			panic(err)
-		}
-		nodes = append(nodes, routing.NewRoutingClient(conn))
-	}
-
-	return nodes
 }
 
 func NewConsumer(conf *conf.Data) sarama.ConsumerGroup {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/4everland/ipfs-top/api/routing"
 	"github.com/4everland/ipfs-top/app/provide/internal/conf"
+	"github.com/4everland/ipfs-top/app/provide/internal/data"
 	"github.com/IBM/sarama"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/ipfs/go-cid"
@@ -15,8 +16,9 @@ import (
 
 type EventServer struct {
 	conf     *conf.Kafka
-	nodes    []routing.RoutingClient
+	nodes    []*data.NamedRoutingClient
 	consumer sarama.ConsumerGroup
+	//metrics  *prom.ProvideMetrics
 }
 
 type Consumer struct {
@@ -90,10 +92,10 @@ func (server *EventServer) Start(ctx context.Context) error {
 	}
 	product := make(chan cid.Cid, len(server.nodes))
 	for _, node := range server.nodes {
-		go func(ctx context.Context, node routing.RoutingClient) {
+		go func(ctx context.Context, node *data.NamedRoutingClient) {
 			errCount := 0
 			for c := range product {
-				_, err := node.Provide(ctx, &routing.ProvideReq{
+				_, err := node.Client.Provide(ctx, &routing.ProvideReq{
 					Cid:     &routing.Cid{Str: c.Bytes()},
 					Provide: true,
 				})
@@ -102,6 +104,7 @@ func (server *EventServer) Start(ctx context.Context) error {
 					log.NewHelper(log.DefaultLogger).WithContext(ctx).Errorf("provide %s error: %v", c.String(), err)
 					product <- c
 				} else {
+					//server.metrics.Provide(node.Name)
 					continue
 				}
 				if errCount >= 10 {
@@ -158,7 +161,7 @@ func (server *EventServer) Stop(context.Context) error {
 func NewEventServer(
 	conf *conf.Data,
 	consumer sarama.ConsumerGroup,
-	nodes []routing.RoutingClient,
+	nodes []*data.NamedRoutingClient,
 ) *EventServer {
 	if !conf.EnableProvider {
 		return nil

@@ -16,7 +16,7 @@ import (
 )
 
 type ReProviderBiz struct {
-	nodes []routing.RoutingClient
+	nodes []*data.NamedRoutingClient
 	bs    blockstore.Blockstore
 	ng    ipld.NodeGetter
 
@@ -62,10 +62,10 @@ func (server *ReProviderBiz) reProvider(ctx context.Context) error {
 	product := make(chan cid.Cid, len(server.nodes))
 	defer close(product)
 	for _, node := range server.nodes {
-		go func(ctx context.Context, node routing.RoutingClient) {
+		go func(ctx context.Context, node *data.NamedRoutingClient) {
 			errCount := 0
 			for c := range product {
-				_, err := node.Provide(ctx, &routing.ProvideReq{
+				_, err := node.Client.Provide(ctx, &routing.ProvideReq{
 					Cid:     &routing.Cid{Str: c.Bytes()},
 					Provide: true,
 				})
@@ -74,7 +74,7 @@ func (server *ReProviderBiz) reProvider(ctx context.Context) error {
 					server.logger.WithContext(ctx).Errorf("provide %s error: %v", c.String(), err)
 					product <- c
 				} else {
-					server.metrics.Provide("")
+					server.metrics.Provide(node.Name)
 					continue
 				}
 				if errCount >= 10 {
@@ -134,7 +134,7 @@ func (server *ReProviderBiz) reProvider(ctx context.Context) error {
 
 func NewReProviderBiz(
 	bs blockstore.Blockstore,
-	nodes []routing.RoutingClient,
+	nodes []*data.NamedRoutingClient,
 	pin *data.PinSetRepo,
 	logger log.Logger,
 ) *ReProviderBiz {
