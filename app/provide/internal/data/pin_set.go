@@ -59,10 +59,15 @@ func (d *PinSetRepo) AllKeys(ctx context.Context, endTime time.Time) (chan cid.C
 					continue
 				}
 				if len(c.Pkey) != 0 {
+					var filter bool
 					for _, p := range d.filterPrefixKeys {
 						if strings.HasPrefix(c.Pkey[0], p) {
-							continue
+							filter = true
+							break
 						}
+					}
+					if filter {
+						continue
 					}
 					cc, err := cid.Decode(c.Cid)
 					if err != nil {
