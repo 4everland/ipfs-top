@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/4everland/ipfs-top/app/provide/internal/biz"
 	"github.com/4everland/ipfs-top/app/provide/internal/conf"
 	"github.com/4everland/ipfs-top/enum"
 	"github.com/go-kratos/kratos/v2/log"
@@ -12,7 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func NewMetricsServer(c *conf.Server, logger log.Logger) *http.Server {
+func NewMetricsServer(c *conf.Server, r *biz.ReProviderBiz, logger log.Logger) *http.Server {
 	var opts = []http.ServerOption{
 		http.Middleware(
 			recovery.Recovery(),
@@ -31,6 +32,9 @@ func NewMetricsServer(c *conf.Server, logger log.Logger) *http.Server {
 	}
 	srv := http.NewServer(opts...)
 	srv.Handle("/metrics", promhttp.Handler())
+	srv.Route("/cid").GET("/", func(ctx http.Context) error {
+		return ctx.String(200, r.Current())
+	})
 	srv.Route("/ping").GET("/", func(ctx http.Context) error {
 		//Hello from IPFS Gateway Checker
 		//bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m

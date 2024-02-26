@@ -31,7 +31,7 @@ func wireApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*
 	pinSetRepo := data.NewDataSetRepo(db, confData, logger)
 	reProviderBiz := biz.NewReProviderBiz(blockstore, v, pinSetRepo, logger)
 	reproviderServer := server.NewReproviderServer(reProviderBiz)
-	httpServer := server.NewMetricsServer(confServer, logger)
+	httpServer := server.NewMetricsServer(confServer, reProviderBiz, logger)
 	app := newApp(logger, eventServer, reproviderServer, httpServer)
 	return app, func() {
 	}, nil

@@ -2,6 +2,7 @@ package biz
 
 import (
 	"context"
+	"fmt"
 	"github.com/4everland/ipfs-top/api/routing"
 	"github.com/4everland/ipfs-top/app/provide/internal/data"
 	"github.com/4everland/ipfs-top/app/provide/internal/helpers"
@@ -12,6 +13,7 @@ import (
 	"github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
+	"github.com/panjf2000/ants/v2"
 	"time"
 )
 
@@ -24,6 +26,12 @@ type ReProviderBiz struct {
 	logger *log.Helper
 
 	metrics *prom.ProvideMetrics
+
+	current string
+}
+
+func (server *ReProviderBiz) Current() string {
+	return server.current
 }
 
 func (server *ReProviderBiz) Run(ctx context.Context) error {
@@ -55,10 +63,15 @@ func (server *ReProviderBiz) Run(ctx context.Context) error {
 
 func (server *ReProviderBiz) reProvider(ctx context.Context) error {
 	ch, errCh := server.pin.AllKeys(ctx, time.Now())
-
+	server.metrics.Clean()
 	defer func() {
 		server.metrics.Clean()
 	}()
+
+	if len(server.nodes) == 0 {
+		return fmt.Errorf("at least one node is required to provide data")
+	}
+
 	product := make(chan cid.Cid, len(server.nodes))
 	defer close(product)
 	for _, node := range server.nodes {
@@ -84,46 +97,53 @@ func (server *ReProviderBiz) reProvider(ctx context.Context) error {
 			}
 		}(ctx, node)
 	}
+
+	p, err := ants.NewPoolWithFunc(len(server.nodes), func(i interface{}) {
+		cc, ok := i.(cid.Cid)
+		if !ok {
+			return
+		}
+		n, err := server.ng.Get(ctx, cc)
+		if err != nil {
+			server.logger.WithContext(ctx).Errorf("reprovide %s error: %v", cc.String(), err)
+			return
+		}
+
+		iter := helpers.NewDagNodeIter(ctx, []ipld.Node{n}, server.ng)
+		for {
+			nn, err := iter.Next()
+			if err != nil {
+				server.logger.WithContext(ctx).Errorf("reprovide %s error: %v", nn.String(), err)
+				break
+			}
+			if nn == nil {
+				break
+			}
+			product <- nn.Cid()
+		}
+		server.metrics.Inc()
+	}, ants.WithPanicHandler(func(i interface{}) {
+		server.logger.Errorf("reprovide panic: %v", i)
+	}))
+
+	if err != nil {
+		return err
+	}
+
+	defer p.Release()
 	for {
 		select {
 		case cc, ok := <-ch:
 			if !ok {
 				return nil
 			}
-			//cc.Type()
+			server.current = cc.String()
 			if cc.Prefix().Codec == cid.Raw {
 				product <- cc
 				server.metrics.Inc()
 				continue
 			}
-			n, err := server.ng.Get(ctx, cc)
-			if err != nil {
-				server.logger.WithContext(ctx).Errorf("reprovide %s error: %v", cc.String(), err)
-				continue
-			}
-
-			iter := helpers.NewDagNodeIter(ctx, []ipld.Node{n}, server.ng)
-			for {
-				nn, err := iter.Next()
-				if err != nil {
-					server.logger.WithContext(ctx).Errorf("reprovide %s error: %v", nn.String(), err)
-					break
-				}
-				if nn == nil {
-					break
-				}
-				//provide to one node
-				product <- nn.Cid()
-				//for _, node := range server.nodes {
-				//	if _, err = node.Provide(ctx, &routing.ProvideReq{
-				//		Cid:     &routing.Cid{Str: nn.Cid().Bytes()},
-				//		Provide: true,
-				//	}); err != nil {
-				//		server.logger.WithContext(ctx).Errorf("reprovide %s error: %v", cid.String(), err)
-				//	}
-				//}
-			}
-			server.metrics.Inc()
+			p.Invoke(cc)
 		case err := <-errCh:
 			return err
 		case <-ctx.Done():
