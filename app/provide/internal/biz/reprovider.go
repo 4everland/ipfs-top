@@ -88,12 +88,12 @@ func (server *ReProviderBiz) reProvider(ctx context.Context) error {
 					product <- c
 				} else {
 					server.metrics.Provide(node.Name)
+					errCount = 0
 					continue
 				}
 				if errCount >= 10 {
 					time.Sleep(time.Second * 20)
 				}
-				errCount = 0
 			}
 		}(ctx, node)
 	}
