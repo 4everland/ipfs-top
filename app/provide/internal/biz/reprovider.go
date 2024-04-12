@@ -14,6 +14,7 @@ import (
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/panjf2000/ants/v2"
+	"sync"
 	"time"
 )
 
@@ -28,6 +29,9 @@ type ReProviderBiz struct {
 	metrics *prom.ProvideMetrics
 
 	current string
+
+	mux     sync.Mutex
+	product chan cid.Cid
 }
 
 func (server *ReProviderBiz) Current() string {
@@ -61,6 +65,39 @@ func (server *ReProviderBiz) Run(ctx context.Context) error {
 	}
 }
 
+func (server *ReProviderBiz) send(ctx context.Context) chan<- cid.Cid {
+	server.mux.Lock()
+	defer server.mux.Unlock()
+	if server.product == nil {
+		server.product = make(chan cid.Cid, len(server.nodes))
+	}
+
+	for _, node := range server.nodes {
+		go func(ctx context.Context, node *data.NamedRoutingClient) {
+			errCount := 0
+			for c := range server.product {
+				_, err := node.Client.Provide(ctx, &routing.ProvideReq{
+					Cid:     &routing.Cid{Str: c.Bytes()},
+					Provide: true,
+				})
+				if err != nil {
+					errCount++
+					server.logger.WithContext(ctx).Errorf("provide %s error: %v", c.String(), err)
+					server.product <- c
+				} else {
+					server.metrics.Provide(node.Name)
+					errCount = 0
+					continue
+				}
+				if errCount >= 10 {
+					time.Sleep(time.Second * 60)
+				}
+			}
+		}(ctx, node)
+	}
+	return server.product
+}
+
 func (server *ReProviderBiz) reProvider(ctx context.Context) error {
 	ch, errCh := server.pin.AllKeys(ctx, time.Now())
 	server.metrics.Clean()
@@ -72,32 +109,7 @@ func (server *ReProviderBiz) reProvider(ctx context.Context) error {
 		return fmt.Errorf("at least one node is required to provide data")
 	}
 
-	product := make(chan cid.Cid, len(server.nodes))
-	defer close(product)
-	for _, node := range server.nodes {
-		go func(ctx context.Context, node *data.NamedRoutingClient) {
-			errCount := 0
-			for c := range product {
-				_, err := node.Client.Provide(ctx, &routing.ProvideReq{
-					Cid:     &routing.Cid{Str: c.Bytes()},
-					Provide: true,
-				})
-				if err != nil {
-					errCount++
-					server.logger.WithContext(ctx).Errorf("provide %s error: %v", c.String(), err)
-					product <- c
-				} else {
-					server.metrics.Provide(node.Name)
-					errCount = 0
-					continue
-				}
-				if errCount >= 10 {
-					time.Sleep(time.Second * 20)
-				}
-			}
-		}(ctx, node)
-	}
-
+	product := server.send(ctx)
 	p, err := ants.NewPoolWithFunc(len(server.nodes), func(i interface{}) {
 		cc, ok := i.(cid.Cid)
 		if !ok {
