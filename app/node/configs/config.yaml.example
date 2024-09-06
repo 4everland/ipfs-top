@@ -17,5 +17,7 @@ server:
     high_water: 200
     leveldb_path: ./datastore
     private_key_path: ./private_key
+    max_memory: 1073741824
+    max_fd: 1024
 data:
   blockstore_uri: "127.0.0.1:9000"

@@ -11,7 +11,6 @@ type ConnectPeer struct {
 	Addr      string `json:"addr,omitempty"`
 	Direction string
 	Opened    time.Time
-	Transient bool
 }
 
 func (cp ConnectPeer) String() string {

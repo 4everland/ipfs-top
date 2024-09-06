@@ -4,11 +4,13 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"fmt"
 	"github.com/4everland/ipfs-top/app/node/internal/conf"
 	"github.com/4everland/ipfs-top/app/node/internal/service"
 	"github.com/4everland/ipfs-top/app/node/internal/types"
 	rcmgr2 "github.com/4everland/ipfs-top/third_party/rcmgr"
 	"github.com/go-kratos/kratos/v2/log"
+	"github.com/go-kratos/kratos/v2/transport/http"
 	"github.com/ipfs/boxo/bootstrap"
 	"github.com/ipfs/boxo/ipns"
 	"github.com/ipfs/boxo/peering"
@@ -34,6 +36,7 @@ import (
 	webtransport "github.com/libp2p/go-libp2p/p2p/transport/webtransport"
 	ma "github.com/multiformats/go-multiaddr"
 	"io"
+	htp "net/http"
 	"os"
 	"time"
 )
@@ -41,6 +44,9 @@ import (
 type NodeServer struct {
 	leveldbpath string
 	addrs       []string
+
+	maxMemory uint64
+	maxFd     int
 
 	priKey crypto.PrivKey
 
@@ -71,6 +77,14 @@ type RoutingOptionArgs struct {
 	BootstrapPeers                []peer.AddrInfo
 	OptimisticProvide             bool
 	OptimisticProvideJobsPoolSize int
+}
+
+type AddrInfo struct {
+	Addr string `json:"addr"`
+}
+
+type Peer struct {
+	Id string `json:"id"`
 }
 
 func NewNodeServer(serverConf *conf.Server, logger log.Logger, ds datastore.Batching, svcs ...service.NodeService) (*NodeServer, error) {
@@ -136,6 +150,14 @@ func NewNodeServer(serverConf *conf.Server, logger log.Logger, ds datastore.Batc
 		return nil, err
 	}
 
+	maxMemory := serverConf.Node.MaxMemory
+	maxFd := serverConf.Node.MaxFd
+	if maxMemory == 0 {
+		maxMemory = 2 * 1024 * 1024 * 1024 // 2GB
+	}
+	if maxFd == 0 {
+		maxFd = 1024
+	}
 	return &NodeServer{
 		dhtDs:       ds,
 		leveldbpath: serverConf.Node.LeveldbPath,
@@ -145,6 +167,8 @@ func NewNodeServer(serverConf *conf.Server, logger log.Logger, ds datastore.Batc
 		peers:       addrs,
 		logger:      l,
 		services:    svcs,
+		maxFd:       int(maxFd),
+		maxMemory:   maxMemory,
 	}, nil
 }
 
@@ -170,7 +194,7 @@ func RoutingOption(mode dht.ModeOpt, args RoutingOptionArgs) (routing.Routing, e
 
 func (server *NodeServer) Start(ctx context.Context) (err error) {
 	bwc := metrics.NewBandwidthCounter()
-	limiter := rcmgr.NewFixedLimiter(rcmgr2.MakeResourceManagerConfig(2*1024*1024*1024, 1024, server.connManger.GetInfo().HighWater))
+	limiter := rcmgr.NewFixedLimiter(rcmgr2.MakeResourceManagerConfig(server.maxMemory, server.maxFd, server.connManger.GetInfo().HighWater))
 	mgr, err := rcmgr.NewResourceManager(limiter)
 	if err != nil {
 		return err
@@ -230,7 +254,7 @@ func (server *NodeServer) Start(ctx context.Context) (err error) {
 	server.logger.Infof("DHT node started.")
 
 	for _, addr := range server.h.Addrs() {
-		server.logger.Infof("addr: %s/p2p/%s", addr.String(), server.h.ID())
+		server.logger.Warnf("addr: %s/p2p/%s", addr.String(), server.h.ID())
 	}
 
 	//ping service
@@ -245,6 +269,20 @@ func (server *NodeServer) Start(ctx context.Context) (err error) {
 	for _, s := range server.services {
 		s.Watch(ctx, server)
 	}
+	//protect bootstrap peers
+	go func() {
+		for _, bp := range server.peers {
+			server.h.ConnManager().Protect(bp.ID, "bootstrap")
+			connectErr := server.h.Connect(ctx, bp)
+			if connectErr != nil {
+				server.logger.Errorf("connect to bootstrap peer %s error: %s", bp.ID, connectErr)
+				continue
+			}
+			server.h.Peerstore().AddAddrs(bp.ID, bp.Addrs, peerstore.PermanentAddrTTL)
+		}
+		server.logger.Warnf("connect to bootstrap peers success")
+	}()
+
 	return nil
 }
 
@@ -264,7 +302,7 @@ func (server *NodeServer) Bootstrap(cfg bootstrap.BootstrapConfig) (err error) {
 		}
 	}
 	if server.Bootstrapper != nil {
-		server.Bootstrapper.Close() // stop previous bootstrap process.
+		_ = server.Bootstrapper.Close() // stop previous bootstrap process.
 	}
 	server.Bootstrapper, err = bootstrap.Bootstrap(peerID, server.h, server.rt, cfg)
 	return err
@@ -298,7 +336,6 @@ func (server *NodeServer) Peers() []types.ConnectPeer {
 			Addr:      c.RemoteMultiaddr().String(),
 			Opened:    c.Stat().Opened,
 			Direction: c.Stat().Direction.String(),
-			Transient: c.Stat().Transient,
 		}
 		out = append(out, ci)
 	}
@@ -324,6 +361,61 @@ func (server *NodeServer) ConnectCount() connmgr.CMInfo {
 func (server *NodeServer) PrintNode() {
 	server.logger.Infof("conn count: %d peer count:%d",
 		server.ConnectCount().ConnCount, len(server.Peers()))
+}
+
+func (server *NodeServer) RegisterApi(route *http.Router) {
+	route.GET("/peers", func(ctx http.Context) error {
+		return ctx.JSON(htp.StatusOK, server.Peers())
+	})
+	route.GET("/conn", func(ctx http.Context) error {
+		return ctx.JSON(htp.StatusOK, server.GetConnMgr())
+	})
+	route.GET("/addrs", func(ctx http.Context) error {
+		ret := ""
+		func() {
+			defer func() {
+				if err := recover(); err != nil {
+					server.logger.Errorf("api query addrs panic: %v", err)
+				}
+			}()
+			ret += fmt.Sprintf("addr count: %d\n", len(server.h.Addrs()))
+			for _, addr := range server.h.Addrs() {
+				ret += addr.String() + "/p2p/" + server.h.ID().String() + "\n"
+			}
+		}()
+
+		return ctx.String(htp.StatusOK, ret)
+	})
+
+	route.POST("/connect", func(ctx http.Context) error {
+		var info AddrInfo
+		if err := ctx.Bind(&info); err != nil {
+			return ctx.String(htp.StatusBadRequest, fmt.Sprintf("bad request error: %s", err))
+		}
+
+		addr, err := peer.AddrInfoFromString(info.Addr)
+		if err != nil {
+			return ctx.String(htp.StatusBadRequest, fmt.Sprintf("bad addr: %s", err))
+		}
+		err = server.h.Connect(ctx, *addr)
+		if err != nil {
+			return ctx.String(htp.StatusInternalServerError, fmt.Sprintf("connect failed: %s", err))
+		}
+		return ctx.String(htp.StatusOK, fmt.Sprintf("connect %s success", addr.ID.String()))
+	})
+
+	route.GET("/findpeer", func(ctx http.Context) error {
+		var p Peer
+		err := ctx.BindQuery(&p)
+		if err != nil {
+			return ctx.String(htp.StatusBadRequest, fmt.Sprintf("bad request error: %s", err))
+		}
+		info, err := server.rt.FindPeer(ctx, peer.ID(p.Id))
+		if err != nil {
+			return ctx.String(htp.StatusInternalServerError, fmt.Sprintf("find peer failed: %s", err))
+		}
+		return ctx.String(htp.StatusOK, fmt.Sprintf("find peer success: %s", info.String()))
+	})
 }
 
 func getPeerAddrs(addrs []string) ([]ma.Multiaddr, error) {

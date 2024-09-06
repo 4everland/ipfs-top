@@ -25,6 +25,8 @@ message Server {
     int64 high_water = 6;
     string leveldb_path = 7;
     string private_key_path = 8;
+    uint64 max_memory = 9;
+    uint32 max_fd = 10;
   }
 
   message HTTP {

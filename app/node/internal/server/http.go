@@ -34,12 +34,6 @@ func NewHttpServer(c *conf.Server, s *NodeServer, logger log.Logger) *http.Serve
 		return ctx.String(200, "pong")
 	})
 	srv.Handle("/metrics", promhttp.Handler())
-	stats := srv.Route("/stats")
-	stats.GET("/peers", func(ctx http.Context) error {
-		return ctx.JSON(200, s.Peers())
-	})
-	stats.GET("/conn", func(ctx http.Context) error {
-		return ctx.JSON(200, s.GetConnMgr())
-	})
+	s.RegisterApi(srv.Route("/api/v0"))
 	return srv
 }

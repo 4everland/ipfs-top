@@ -125,7 +125,7 @@ func (server *ReProviderBiz) reProvider(ctx context.Context) error {
 		for {
 			nn, err := iter.Next()
 			if err != nil {
-				server.logger.WithContext(ctx).Errorf("reprovide %s error: %v", nn.String(), err)
+				server.logger.WithContext(ctx).Errorf("reprovide error: %v", err)
 				break
 			}
 			if nn == nil {
