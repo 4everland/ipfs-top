@@ -1,9 +1,7 @@
 package biz
 
 import (
-	"bytes"
 	"context"
-	"errors"
 	"github.com/4everland/diskv/v3"
 	"github.com/4everland/ipfs-top/app/gateway/internal/conf"
 	"github.com/4everland/ipfs-top/third_party/prom"
@@ -14,7 +12,6 @@ import (
 	"github.com/ipfs/go-cid"
 	format "github.com/ipfs/go-ipld-format"
 	"io"
-	"os"
 )
 
 type readOnlyS3blockStore struct {
@@ -44,26 +41,38 @@ func (bs *readOnlyS3blockStore) Get(ctx context.Context, c cid.Cid) (block block
 		key = cid.NewCidV1(cid.DagProtobuf, c.Hash()).String()
 	}
 
-	if b, err := bs.c.Read(key); err == nil {
-		bs.metrics.IncrCacheHits()
-		return blocks.NewBlockWithCid(b, c)
-	} else if !errors.Is(err, os.ErrNotExist) {
-		bs.log.Error("get disk cache error:", err)
-	}
-
 	var r io.ReadCloser
 	if r, err = bs.s3Client.Get(ctx, key); err != nil {
 		bs.metrics.IncrRequestHits()
 		return nil, format.ErrNotFound{}
 	}
-	bs.metrics.IncrBlockStoreHits()
-	defer r.Close()
-	var bf bytes.Buffer
-	if err = bs.c.WriteStream(key, io.TeeReader(r, &bf), false); err != nil {
-		bs.log.Error("write disk cache error:", err)
-	}
 
-	return blocks.NewBlockWithCid(bf.Bytes(), c)
+	b, err := io.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+	return blocks.NewBlockWithCid(b, c)
+
+	//if b, err := bs.c.Read(key); err == nil {
+	//	bs.metrics.IncrCacheHits()
+	//	return blocks.NewBlockWithCid(b, c)
+	//} else if !errors.Is(err, os.ErrNotExist) {
+	//	bs.log.Error("get disk cache error:", err)
+	//}
+	//
+	//var r io.ReadCloser
+	//if r, err = bs.s3Client.Get(ctx, key); err != nil {
+	//	bs.metrics.IncrRequestHits()
+	//	return nil, format.ErrNotFound{}
+	//}
+	//bs.metrics.IncrBlockStoreHits()
+	//defer r.Close()
+	//var bf bytes.Buffer
+	//if err = bs.c.WriteStream(key, io.TeeReader(r, &bf), false); err != nil {
+	//	bs.log.Error("write disk cache error:", err)
+	//}
+	//
+	//return blocks.NewBlockWithCid(bf.Bytes(), c)
 }
 
 func (bs *readOnlyS3blockStore) GetSize(ctx context.Context, c cid.Cid) (int, error) {
