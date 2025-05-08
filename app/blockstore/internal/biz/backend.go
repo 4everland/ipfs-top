@@ -45,6 +45,11 @@ func NewBackendStorage(data *conf.Data, logger log.Logger) BlockStore {
 }
 
 func (bs *blockStore) Get(ctx context.Context, key string) (r io.ReadCloser, err error) {
+	if r, err = bs.s3Client.Get(ctx, key); err != nil {
+		return
+	}
+
+	return r, nil
 	if r, err = bs.c.ReadStream(key, true); err == nil {
 		bs.metrics.IncrCacheHits()
 		return
