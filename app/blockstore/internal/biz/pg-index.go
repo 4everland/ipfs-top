@@ -3,6 +3,7 @@ package biz
 import (
 	"context"
 	"fmt"
+	lru "github.com/hashicorp/golang-lru"
 	ipld "github.com/ipfs/go-ipld-format"
 	red "github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
@@ -17,6 +18,8 @@ const (
 	BloomErrorRatio = 0.01
 	BloomSize       = 5000000
 	IndexCacheKey   = "blockstore:index-cache"
+
+	defaultPgIndexLRUSize = 1024
 )
 
 type PgIndexValue struct {
@@ -32,10 +35,20 @@ type PgIndexStore struct {
 	db *gorm.DB
 	rd *red.Client
 
+	cache *lru.Cache
+
 	enableBloomQuery bool
 }
 
-func NewPg(db *gorm.DB, rd *red.Client, enableBloomQuery bool) (BlockIndex, error) {
+func NewPg(db *gorm.DB, rd *red.Client, enableBloomQuery bool, lruSize int) (BlockIndex, error) {
+	if lruSize <= 0 {
+		lruSize = defaultPgIndexLRUSize
+	}
+
+	cache, err := lru.New(lruSize)
+	if err != nil {
+		return nil, err
+	}
 
 	for i := 0; i < numberOfShards; i++ {
 		exists, err := rd.Exists(context.Background(), bloomFilterKey(i)).Result()
@@ -51,8 +64,9 @@ func NewPg(db *gorm.DB, rd *red.Client, enableBloomQuery bool) (BlockIndex, erro
 	}
 
 	return &PgIndexStore{
-		db: db,
-		rd: rd,
+		db:    db,
+		rd:    rd,
+		cache: cache,
 
 		enableBloomQuery: enableBloomQuery,
 	}, nil
@@ -74,6 +88,7 @@ func (pg *PgIndexStore) Put(ctx context.Context, cid string, v IndexValue) error
 	if err = pg.rd.Set(ctx, indexCacheKey(cid), v.size, time.Second*10).Err(); err != nil {
 		return err
 	}
+	pg.setMemoryCache(cid, v.size)
 
 	return nil
 }
@@ -93,12 +108,15 @@ func (pg *PgIndexStore) Has(ctx context.Context, cid string) (bool, error) {
 		return true, nil
 	}
 
-	if err := pg.db.WithContext(ctx).Select("id").Take(&PgIndexValue{}, "id = ?", cid).Error; err != nil {
+	var v PgIndexValue
+	if err := pg.db.WithContext(ctx).Select([]string{"id", "size"}).Take(&v, "id = ?", cid).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return false, nil
 		}
 		return false, err
 	}
+
+	pg.setMemoryCache(v.Cid, v.Size)
 	return true, nil
 }
 
@@ -119,10 +137,13 @@ func (pg *PgIndexStore) Get(ctx context.Context, cid string) (*IndexValue, error
 
 	size, err := pg.rd.Get(ctx, indexCacheKey(cid)).Uint64()
 	if err == nil {
-		return &IndexValue{
-			size:     uint32(size),
-			storeKey: cid,
-		}, nil
+		v := newPgCachedIndexValue(cid, uint32(size))
+		pg.cache.Add(cid, v)
+		return &v, nil
+	}
+
+	if v, ok := pg.getMemoryCache(cid); ok {
+		return v, nil
 	}
 
 	var v PgIndexValue
@@ -133,10 +154,10 @@ func (pg *PgIndexStore) Get(ctx context.Context, cid string) (*IndexValue, error
 		return nil, err
 	}
 
-	return &IndexValue{
-		size:     v.Size,
-		storeKey: v.Cid,
-	}, nil
+	value := newPgCachedIndexValue(v.Cid, v.Size)
+	pg.cache.Add(cid, value)
+
+	return &value, nil
 }
 
 func (pg *PgIndexStore) List(ctx context.Context) <-chan string {
@@ -180,4 +201,33 @@ func cid2TableIndex(cid string) int {
 
 func indexCacheKey(cid string) string {
 	return fmt.Sprintf("%s:%s", IndexCacheKey, cid)
+}
+
+func newPgCachedIndexValue(cid string, size uint32) IndexValue {
+	return IndexValue{
+		size:     size,
+		storeKey: cid,
+	}
+}
+
+func (pg *PgIndexStore) getMemoryCache(cid string) (*IndexValue, bool) {
+	if pg.cache == nil {
+		return nil, false
+	}
+
+	v, ok := pg.cache.Get(cid)
+	if !ok {
+		return nil, false
+	}
+
+	value := v.(IndexValue)
+	return &value, true
+}
+
+func (pg *PgIndexStore) setMemoryCache(cid string, size uint32) {
+	if pg.cache == nil {
+		return
+	}
+
+	pg.cache.Add(cid, newPgCachedIndexValue(cid, size))
 }

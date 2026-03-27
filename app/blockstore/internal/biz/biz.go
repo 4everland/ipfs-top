@@ -80,7 +80,7 @@ func NewIndexStore(data *conf.Data) (BlockIndex, error) {
 			}
 		}
 
-		return NewPg(d, rd, data.GetDb().GetPg().GetEnableBloom())
+		return NewPg(d, rd, data.GetDb().GetPg().GetEnableBloom(), int(data.GetCache().GetLruSize()))
 	default:
 		return NewLevelDb(data.GetDb().GetLeveldb().GetPath())
 	}
