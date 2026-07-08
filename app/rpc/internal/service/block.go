@@ -7,12 +7,11 @@ import (
 	"github.com/4everland/ipfs-top/third_party/coreunix"
 	httpctx "github.com/go-kratos/kratos/v2/transport/http"
 	"github.com/ipfs/boxo/blockservice"
-	"github.com/ipfs/boxo/coreiface/options"
-	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/files"
 	blocks "github.com/ipfs/go-block-format"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	http2 "github.com/ipfs/go-ipfs-cmds/http"
+	"github.com/ipfs/kubo/core/coreiface/options"
 	mh "github.com/multiformats/go-multihash"
 	"io"
 	"mime"
@@ -137,8 +136,8 @@ func (s *BlocksService) BlockPut(ctx httpctx.Context) (err error) {
 		//	}
 		//}
 
-		if !req.AllowBigBlock && len(b.RawData()) > 1024*1024 {
-			return fmt.Errorf("produced block is over 1MiB: big blocks can't be exchanged with other peers. consider using UnixFS for automatic chunking of bigger files, or pass --allow-big-block to override")
+		if !req.AllowBigBlock && len(b.RawData()) > defaultMaxBlockSize {
+			return fmt.Errorf("produced block is over %s: big blocks can't be exchanged with other peers. consider using UnixFS for automatic chunking of bigger files, or pass --allow-big-block to override", defaultMaxBlockSizeLabel)
 		}
 
 		if err = res.Emit(&BlockStat{
@@ -176,7 +175,12 @@ func (s *BlocksService) BlockGet(ctx httpctx.Context) (err error) {
 		return errors.New("argument \"arg\" is required")
 	}
 
-	rp, err := s.dagResolver.ResolvePath(ctx, path.New(req.Arg))
+	p, err := coreunix.NewPath(req.Arg)
+	if err != nil {
+		return err
+	}
+
+	rp, err := s.dagResolver.ResolvePath(ctx, p)
 	if err != nil {
 		return err
 	}

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/4everland/ipfs-top/third_party/coreunix"
 	httpctx "github.com/go-kratos/kratos/v2/transport/http"
-	"github.com/ipfs/boxo/coreiface/path"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	ft "github.com/ipfs/boxo/ipld/unixfs"
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -57,7 +56,7 @@ func (s *FilesService) Stat(ctx httpctx.Context) (err error) {
 	}
 
 	if _, err = statGetFormatOptions(req.Hash, req.Size, req.Format); err != nil {
-		return cmds.Errorf(cmds.ErrClient, err.Error())
+		return cmds.Errorf(cmds.ErrClient, "%s", err.Error())
 	}
 
 	p, err := checkPath(req.Arg)
@@ -74,7 +73,12 @@ func (s *FilesService) Stat(ctx httpctx.Context) (err error) {
 		dagserv = s.offlineDagService
 	}
 
-	nd, err := s.dagResolver.ResolveNode(ctx, path.New(p))
+	contentPath, err := coreunix.NewPath(p)
+	if err != nil {
+		return err
+	}
+
+	nd, err := s.dagResolver.ResolveNode(ctx, contentPath)
 	if err != nil {
 		return err
 	}
@@ -241,7 +245,12 @@ func (s *FilesService) ObjectStat(ctx httpctx.Context) (err error) {
 	w := ctx.Response()
 
 	p := ctx.Query().Get("arg")
-	nd, err := s.dagResolver.ResolveNode(ctx, path.New(p))
+	contentPath, err := coreunix.NewPath(p)
+	if err != nil {
+		return err
+	}
+
+	nd, err := s.dagResolver.ResolveNode(ctx, contentPath)
 	if err != nil {
 		return err
 	}

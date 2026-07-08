@@ -10,8 +10,6 @@ import (
 
 	bstore "github.com/ipfs/boxo/blockstore"
 	chunker "github.com/ipfs/boxo/chunker"
-	coreiface "github.com/ipfs/boxo/coreiface"
-	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/files"
 	posinfo "github.com/ipfs/boxo/filestore/posinfo"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
@@ -20,9 +18,11 @@ import (
 	ihelper "github.com/ipfs/boxo/ipld/unixfs/importer/helpers"
 	"github.com/ipfs/boxo/ipld/unixfs/importer/trickle"
 	"github.com/ipfs/boxo/mfs"
+	"github.com/ipfs/boxo/path"
 	pin "github.com/ipfs/boxo/pinning/pinner"
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
 )
 
 // how many bytes of progress to wait before sending a progress update message
@@ -87,7 +87,7 @@ func (adder *Adder) mfsRoot() (*mfs.Root, error) {
 	if err != nil {
 		return nil, err
 	}
-	mr, err := mfs.NewRoot(adder.ctx, adder.dagService, rnode, nil)
+	mr, err := mfs.NewRoot(adder.ctx, adder.dagService, rnode, nil, nil, mfs.WithCidBuilder(adder.CidBuilder))
 	if err != nil {
 		return nil, err
 	}
@@ -183,7 +183,7 @@ func (adder *Adder) PinRoot(ctx context.Context, root ipld.Node) error {
 		adder.tempRoot = rnk
 	}
 
-	adder.pinning.PinWithMode(ctx, rnk, pin.Recursive)
+	adder.pinning.PinWithMode(ctx, rnk, pin.Recursive, "")
 	return adder.pinning.Flush(ctx)
 }
 
@@ -239,9 +239,8 @@ func (adder *Adder) addNode(node ipld.Node, path string) error {
 	dir := gopath.Dir(path)
 	if dir != "." {
 		opts := mfs.MkdirOpts{
-			Mkparents:  true,
-			Flush:      false,
-			CidBuilder: adder.CidBuilder,
+			Mkparents: true,
+			Flush:     false,
 		}
 		if err := mfs.Mkdir(mr, dir, opts); err != nil {
 			return err
@@ -423,9 +422,8 @@ func (adder *Adder) addDir(ctx context.Context, path string, dir files.Directory
 			return err
 		}
 		err = mfs.Mkdir(mr, path, mfs.MkdirOpts{
-			Mkparents:  true,
-			Flush:      false,
-			CidBuilder: adder.CidBuilder,
+			Mkparents: true,
+			Flush:     false,
 		})
 		if err != nil {
 			return err
@@ -492,7 +490,7 @@ func getOutput(dagnode ipld.Node) (*coreiface.AddEvent, error) {
 	}
 
 	output := &coreiface.AddEvent{
-		Path: path.IpfsPath(c),
+		Path: path.FromCid(c),
 		Size: strconv.FormatUint(s, 10),
 	}
 

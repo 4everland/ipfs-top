@@ -15,7 +15,7 @@ import (
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
-	"github.com/libp2p/go-libp2p-kad-dht/providers"
+	"github.com/libp2p/go-libp2p-kad-dht/records"
 	record "github.com/libp2p/go-libp2p-record"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/host"
@@ -120,7 +120,7 @@ func (server *NodeServer) Start(ctx context.Context) (err error) {
 	}
 
 	opts = append(opts, libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
-		pms, er := providers.NewProviderManager(ctx, h.ID(), server.ps, server.pmDs)
+		pms, er := records.NewProviderManager(ctx, h.ID(), server.ps, server.pmDs)
 		if er != nil {
 			return nil, er
 		}
@@ -206,7 +206,6 @@ func (server *NodeServer) Peers() []types.ConnectPeer {
 			Addr:      c.RemoteMultiaddr().String(),
 			Opened:    c.Stat().Opened,
 			Direction: c.Stat().Direction.String(),
-			Transient: c.Stat().Transient,
 		}
 		out = append(out, ci)
 	}

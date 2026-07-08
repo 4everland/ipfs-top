@@ -10,7 +10,7 @@ func GrpcErrorWrapper(err error) error {
 		return nil
 	}
 	if ipld.IsNotFound(err) {
-		return blockstore.ErrorIpldNotFound(err.Error())
+		return blockstore.ErrorIpldNotFound("%s", err.Error())
 	}
-	return blockstore.ErrorUnknown(err.Error())
+	return blockstore.ErrorUnknown("%s", err.Error())
 }

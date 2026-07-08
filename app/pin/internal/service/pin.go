@@ -7,7 +7,6 @@ import (
 	"github.com/4everland/ipfs-top/third_party/coreunix"
 	"github.com/ipfs/boxo/blockservice"
 	blockstore "github.com/ipfs/boxo/blockstore"
-	"github.com/ipfs/boxo/coreiface/path"
 	exchange "github.com/ipfs/boxo/exchange"
 	"github.com/ipfs/boxo/ipld/merkledag"
 	pin "github.com/ipfs/boxo/pinning/pinner"
@@ -55,14 +54,19 @@ func NewPinService(blockStore blockstore.Blockstore, datastore datastore.Datasto
 
 }
 func (s *PinService) Add(ctx context.Context, req *pb.AddReq) (*emptypb.Empty, error) {
-	dagNode, err := s.dagResolver.ResolveNode(ctx, path.New(req.Path))
+	p, err := coreunix.NewPath(req.Path)
+	if err != nil {
+		return &emptypb.Empty{}, fmt.Errorf("pin: %s", err)
+	}
+
+	dagNode, err := s.dagResolver.ResolveNode(ctx, p)
 	if err != nil {
 		return &emptypb.Empty{}, fmt.Errorf("pin: %s", err)
 	}
 
 	defer s.blockstore.PinLock(ctx).Unlock(ctx)
 
-	err = s.pinning.Pin(ctx, dagNode, req.Recursive)
+	err = s.pinning.Pin(ctx, dagNode, req.Recursive, "")
 	if err != nil {
 		return &emptypb.Empty{}, fmt.Errorf("pin: %s", err)
 	}
@@ -75,7 +79,12 @@ func (s *PinService) Add(ctx context.Context, req *pb.AddReq) (*emptypb.Empty, e
 }
 
 func (s *PinService) IsPinned(ctx context.Context, req *pb.IsPinnedReq) (*pb.IsPinnedResp, error) {
-	resolved, err := s.dagResolver.ResolvePath(ctx, path.New(req.Path))
+	p, err := coreunix.NewPath(req.Path)
+	if err != nil {
+		return &pb.IsPinnedResp{}, fmt.Errorf("error resolving path: %s", err)
+	}
+
+	resolved, err := s.dagResolver.ResolvePath(ctx, p)
 	if err != nil {
 		return &pb.IsPinnedResp{}, fmt.Errorf("error resolving path: %s", err)
 	}
@@ -93,7 +102,12 @@ func (s *PinService) IsPinned(ctx context.Context, req *pb.IsPinnedReq) (*pb.IsP
 }
 
 func (s *PinService) Rm(ctx context.Context, req *pb.RmReq) (*emptypb.Empty, error) {
-	rp, err := s.dagResolver.ResolvePath(ctx, path.New(req.Path))
+	p, err := coreunix.NewPath(req.Path)
+	if err != nil {
+		return &emptypb.Empty{}, err
+	}
+
+	rp, err := s.dagResolver.ResolvePath(ctx, p)
 	if err != nil {
 		return &emptypb.Empty{}, err
 	}
@@ -110,12 +124,22 @@ func (s *PinService) Rm(ctx context.Context, req *pb.RmReq) (*emptypb.Empty, err
 }
 
 func (s *PinService) Update(ctx context.Context, req *pb.UpdateReq) (*emptypb.Empty, error) {
-	fp, err := s.dagResolver.ResolvePath(ctx, path.New(req.Form))
+	fromPath, err := coreunix.NewPath(req.Form)
 	if err != nil {
 		return &emptypb.Empty{}, err
 	}
 
-	tp, err := s.dagResolver.ResolvePath(ctx, path.New(req.To))
+	fp, err := s.dagResolver.ResolvePath(ctx, fromPath)
+	if err != nil {
+		return &emptypb.Empty{}, err
+	}
+
+	toPath, err := coreunix.NewPath(req.To)
+	if err != nil {
+		return &emptypb.Empty{}, err
+	}
+
+	tp, err := s.dagResolver.ResolvePath(ctx, toPath)
 	if err != nil {
 		return &emptypb.Empty{}, err
 	}
@@ -160,26 +184,26 @@ func (s *PinService) Ls(req *pb.LsReq, server pb.Pin_LsServer) error {
 			err   error
 		)
 		if req.Type == "recursive" || req.Type == "all" {
-			for streamedCid := range s.pinning.RecursiveKeys(server.Context()) {
+			for streamedCid := range s.pinning.RecursiveKeys(server.Context(), false) {
 				if streamedCid.Err != nil {
 					server.Send(&pb.PinInfo{Err: streamedCid.Err.Error()})
 					return
 				}
-				if err = AddToResultKeys(streamedCid.C, "recursive"); err != nil {
-					server.Send(&pb.PinInfo{Err: streamedCid.Err.Error()})
+				if err = AddToResultKeys(streamedCid.Pin.Key, "recursive"); err != nil {
+					server.Send(&pb.PinInfo{Err: err.Error()})
 					return
 				}
-				rkeys = append(rkeys, streamedCid.C)
+				rkeys = append(rkeys, streamedCid.Pin.Key)
 			}
 		}
 		if req.Type == "direct" || req.Type == "all" {
-			for streamedCid := range s.pinning.DirectKeys(server.Context()) {
+			for streamedCid := range s.pinning.DirectKeys(server.Context(), false) {
 				if streamedCid.Err != nil {
 					server.Send(&pb.PinInfo{Err: streamedCid.Err.Error()})
 					return
 				}
-				if err = AddToResultKeys(streamedCid.C, "direct"); err != nil {
-					server.Send(&pb.PinInfo{Err: streamedCid.Err.Error()})
+				if err = AddToResultKeys(streamedCid.Pin.Key, "direct"); err != nil {
+					server.Send(&pb.PinInfo{Err: err.Error()})
 					return
 				}
 			}
@@ -188,21 +212,21 @@ func (s *PinService) Ls(req *pb.LsReq, server pb.Pin_LsServer) error {
 			// We need to first visit the direct pins that have priority
 			// without emitting them
 
-			for streamedCid := range s.pinning.DirectKeys(server.Context()) {
+			for streamedCid := range s.pinning.DirectKeys(server.Context(), false) {
 				if streamedCid.Err != nil {
 					server.Send(&pb.PinInfo{Err: streamedCid.Err.Error()})
 					return
 				}
-				keys.Add(streamedCid.C)
+				keys.Add(streamedCid.Pin.Key)
 			}
 
-			for streamedCid := range s.pinning.RecursiveKeys(server.Context()) {
+			for streamedCid := range s.pinning.RecursiveKeys(server.Context(), false) {
 				if streamedCid.Err != nil {
 					server.Send(&pb.PinInfo{Err: streamedCid.Err.Error()})
 					return
 				}
-				keys.Add(streamedCid.C)
-				rkeys = append(rkeys, streamedCid.C)
+				keys.Add(streamedCid.Pin.Key)
+				rkeys = append(rkeys, streamedCid.Pin.Key)
 			}
 		}
 		if req.Type == "indirect" || req.Type == "all" {

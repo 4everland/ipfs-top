@@ -3,11 +3,9 @@ package coreunix
 import (
 	"context"
 	"fmt"
+
 	"github.com/ipfs/boxo/blockservice"
 	blockstore "github.com/ipfs/boxo/blockstore"
-	coreiface "github.com/ipfs/boxo/coreiface"
-	"github.com/ipfs/boxo/coreiface/options"
-	"github.com/ipfs/boxo/coreiface/path"
 	exchange "github.com/ipfs/boxo/exchange"
 	offline "github.com/ipfs/boxo/exchange/offline"
 	"github.com/ipfs/boxo/fetcher"
@@ -27,6 +25,8 @@ import (
 	dssync "github.com/ipfs/go-datastore/sync"
 	"github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/go-unixfsnode"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
+	"github.com/ipfs/kubo/core/coreiface/options"
 	dagpb "github.com/ipld/go-codec-dagpb"
 	"github.com/ipld/go-ipld-prime"
 	"github.com/ipld/go-ipld-prime/node/basicnode"
@@ -46,8 +46,34 @@ type UnixFsServer struct {
 }
 
 type DagResolve interface {
-	ResolvePath(ctx context.Context, p path.Path) (path.Resolved, error)
-	ResolveNode(ctx context.Context, p path.Path) (format.Node, error)
+	ResolvePath(ctx context.Context, p ipfspath.Path) (ResolvedPath, error)
+	ResolveNode(ctx context.Context, p ipfspath.Path) (format.Node, error)
+}
+
+type ResolvedPath interface {
+	ipfspath.Path
+	Cid() cid.Cid
+	Root() cid.Cid
+	Remainder() string
+}
+
+type resolvedPath struct {
+	ipfspath.Path
+	cid       cid.Cid
+	root      cid.Cid
+	remainder string
+}
+
+func (p resolvedPath) Cid() cid.Cid {
+	return p.cid
+}
+
+func (p resolvedPath) Root() cid.Cid {
+	return p.root
+}
+
+func (p resolvedPath) Remainder() string {
+	return p.remainder
 }
 
 type providerNotify interface {
@@ -99,10 +125,10 @@ func newEmptyGCBlockstore() blockstore.GCBlockstore {
 	return &emptyGCBlockstore{blockstore.NewGCLocker(), blockstore.NewBlockstore(dssync.MutexWrap(ds.NewMapDatastore()))}
 }
 
-func (api *UnixFsServer) Add(ctx context.Context, files files.Node, opts ...options.UnixfsAddOption) (path.Resolved, error) {
+func (api *UnixFsServer) Add(ctx context.Context, files files.Node, opts ...options.UnixfsAddOption) (ipfspath.ImmutablePath, error) {
 	settings, prefix, err := options.UnixfsAddOptions(opts...)
 	if err != nil {
-		return nil, err
+		return ipfspath.ImmutablePath{}, err
 	}
 
 	addblockstore := api.blockstore
@@ -121,7 +147,7 @@ func (api *UnixFsServer) Add(ctx context.Context, files files.Node, opts ...opti
 
 	fileAdder, err := NewAdder(ctx, pinning, addblockstore, dserv)
 	if err != nil {
-		return nil, err
+		return ipfspath.ImmutablePath{}, err
 	}
 
 	fileAdder.Chunker = settings.Chunker
@@ -140,7 +166,7 @@ func (api *UnixFsServer) Add(ctx context.Context, files files.Node, opts ...opti
 	case options.TrickleLayout:
 		fileAdder.Trickle = true
 	default:
-		return nil, fmt.Errorf("unknown layout: %d", settings.Layout)
+		return ipfspath.ImmutablePath{}, fmt.Errorf("unknown layout: %d", settings.Layout)
 	}
 
 	if settings.OnlyHash {
@@ -149,11 +175,11 @@ func (api *UnixFsServer) Add(ctx context.Context, files files.Node, opts ...opti
 		// Use the same prefix for the "empty" MFS root as for the file rpc.
 		err = emptyDirNode.SetCidBuilder(fileAdder.CidBuilder)
 		if err != nil {
-			return nil, err
+			return ipfspath.ImmutablePath{}, err
 		}
-		mr, err := mfs.NewRoot(ctx, md, emptyDirNode, nil)
+		mr, err := mfs.NewRoot(ctx, md, emptyDirNode, nil, nil, mfs.WithCidBuilder(fileAdder.CidBuilder))
 		if err != nil {
-			return nil, err
+			return ipfspath.ImmutablePath{}, err
 		}
 
 		fileAdder.SetMfsRoot(mr)
@@ -161,19 +187,19 @@ func (api *UnixFsServer) Add(ctx context.Context, files files.Node, opts ...opti
 
 	nd, err := fileAdder.AddAllAndPin(ctx, files)
 	if err != nil {
-		return nil, err
+		return ipfspath.ImmutablePath{}, err
 	}
 
 	if !settings.OnlyHash {
 		if err = api.provider.Provide(nd.Cid()); err != nil {
-			return nil, err
+			return ipfspath.ImmutablePath{}, err
 		}
 	}
 
-	return path.IpfsPath(nd.Cid()), nil
+	return ipfspath.FromCid(nd.Cid()), nil
 }
 
-func (api *UnixFsServer) Get(ctx context.Context, p path.Path) (files.Node, error) {
+func (api *UnixFsServer) Get(ctx context.Context, p ipfspath.Path) (files.Node, error) {
 	ses := newDagResolver(ctx, api.dag, api.bs)
 
 	nd, err := ses.ResolveNode(ctx, p)
@@ -184,28 +210,30 @@ func (api *UnixFsServer) Get(ctx context.Context, p path.Path) (files.Node, erro
 	return unixfile.NewUnixfsFile(ctx, ses.dag, nd)
 }
 
-func (api *UnixFsServer) Ls(ctx context.Context, p path.Path, opts ...options.UnixfsLsOption) (<-chan coreiface.DirEntry, error) {
+func (api *UnixFsServer) Ls(ctx context.Context, p ipfspath.Path, out chan<- coreiface.DirEntry, opts ...options.UnixfsLsOption) error {
+	defer close(out)
+
 	settings, err := options.UnixfsLsOptions(opts...)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	ses := newDagResolver(ctx, api.dag, api.bs)
 
 	dagnode, err := ses.ResolveNode(ctx, p)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	dir, err := uio.NewDirectoryFromNode(ses.dag, dagnode)
 	if err == uio.ErrNotADir {
-		return lsFromLinks(ctx, api.dag, dagnode.Links(), settings)
+		return lsFromLinks(ctx, api.dag, dagnode.Links(), settings, out)
 	}
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return lsFromLinksAsync(ctx, api.dag, dir, settings)
+	return lsFromLinksAsync(ctx, api.dag, dir, settings, out)
 }
 
 type dagResolver struct {
@@ -235,18 +263,23 @@ func newDagResolver(ctx context.Context, d format.NodeGetter, b blockservice.Blo
 	}
 }
 
-func (dr *dagResolver) ResolvePath(ctx context.Context, p path.Path) (path.Resolved, error) {
-	if _, ok := p.(path.Resolved); ok {
-		return p.(path.Resolved), nil
+func (dr *dagResolver) ResolvePath(ctx context.Context, p ipfspath.Path) (ResolvedPath, error) {
+	if rp, ok := p.(ResolvedPath); ok {
+		return rp, nil
 	}
-	if err := p.IsValid(); err != nil {
+
+	ipath, err := ipfspath.NewPath(p.String())
+	if err != nil {
 		return nil, err
 	}
 
-	ipath := ipfspath.Path(p.String())
-	//if ipath.Segments()[0] != "ipfs" && ipath.Segments()[0] != "ipld" {
 	if ipath.Segments()[0] != "ipfs" && ipath.Segments()[0] != "ipld" {
 		return nil, fmt.Errorf("unsupported path namespace: %s", p.Namespace())
+	}
+
+	immutablePath, err := ipfspath.NewImmutablePath(ipath)
+	if err != nil {
+		return nil, err
 	}
 
 	var resolver ipfspathresolver.Resolver
@@ -256,7 +289,7 @@ func (dr *dagResolver) ResolvePath(ctx context.Context, p path.Path) (path.Resol
 		resolver = dr.unixFSPathResolver
 	}
 
-	node, rest, err := resolver.ResolveToLastNode(ctx, ipath)
+	node, rest, err := resolver.ResolveToLastNode(ctx, immutablePath)
 	if err != nil {
 		return nil, err
 	}
@@ -266,10 +299,15 @@ func (dr *dagResolver) ResolvePath(ctx context.Context, p path.Path) (path.Resol
 		return nil, err
 	}
 
-	return path.NewResolvedPath(ipath, node, root, gopath.Join(rest...)), nil
+	return resolvedPath{
+		Path:      ipath,
+		cid:       node,
+		root:      root,
+		remainder: gopath.Join(rest...),
+	}, nil
 }
 
-func (dr *dagResolver) ResolveNode(ctx context.Context, p path.Path) (format.Node, error) {
+func (dr *dagResolver) ResolveNode(ctx context.Context, p ipfspath.Path) (format.Node, error) {
 	rp, err := dr.ResolvePath(ctx, p)
 	if err != nil {
 		return nil, err
@@ -289,14 +327,14 @@ func (emptyProviderNotify) Provide(cid.Cid) error {
 	return nil
 }
 
-func processLink(ctx context.Context, dag format.NodeGetter, linkres ft.LinkResult, settings *options.UnixfsLsSettings) coreiface.DirEntry {
+func processLink(ctx context.Context, dag format.NodeGetter, linkres ft.LinkResult, settings *options.UnixfsLsSettings) (coreiface.DirEntry, error) {
 
 	if linkres.Link != nil {
 		//span.SetAttributes(attribute.String("linkname", linkres.Link.Name), attribute.String("cid", linkres.Link.Cid.String()))
 	}
 
 	if linkres.Err != nil {
-		return coreiface.DirEntry{Err: linkres.Err}
+		return coreiface.DirEntry{}, linkres.Err
 	}
 
 	lnk := coreiface.DirEntry{
@@ -313,15 +351,13 @@ func processLink(ctx context.Context, dag format.NodeGetter, linkres ft.LinkResu
 		if settings.ResolveChildren {
 			linkNode, err := linkres.Link.GetNode(ctx, dag)
 			if err != nil {
-				lnk.Err = err
-				break
+				return coreiface.DirEntry{}, err
 			}
 
 			if pn, ok := linkNode.(*merkledag.ProtoNode); ok {
 				d, err := ft.FSNodeFromBytes(pn.Data())
 				if err != nil {
-					lnk.Err = err
-					break
+					return coreiface.DirEntry{}, err
 				}
 				switch d.Type() {
 				case ft.TFile, ft.TRaw:
@@ -343,33 +379,38 @@ func processLink(ctx context.Context, dag format.NodeGetter, linkres ft.LinkResu
 		}
 	}
 
-	return lnk
+	return lnk, nil
 }
 
-func lsFromLinksAsync(ctx context.Context, dag format.NodeGetter, dir uio.Directory, settings *options.UnixfsLsSettings) (<-chan coreiface.DirEntry, error) {
-	out := make(chan coreiface.DirEntry, uio.DefaultShardWidth)
-
-	go func() {
-		defer close(out)
-		for l := range dir.EnumLinksAsync(ctx) {
-			select {
-			case out <- processLink(ctx, dag, l, settings): //TODO: perf: processing can be done in background and in parallel
-			case <-ctx.Done():
-				return
-			}
+func lsFromLinksAsync(ctx context.Context, dag format.NodeGetter, dir uio.Directory, settings *options.UnixfsLsSettings, out chan<- coreiface.DirEntry) error {
+	for l := range dir.EnumLinksAsync(ctx) {
+		entry, err := processLink(ctx, dag, l, settings)
+		if err != nil {
+			return err
 		}
-	}()
+		select {
+		case out <- entry: // TODO: perf: processing can be done in background and in parallel
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
 
-	return out, nil
+	return nil
 }
 
-func lsFromLinks(ctx context.Context, dag format.NodeGetter, ndlinks []*format.Link, settings *options.UnixfsLsSettings) (<-chan coreiface.DirEntry, error) {
-	links := make(chan coreiface.DirEntry, len(ndlinks))
+func lsFromLinks(ctx context.Context, dag format.NodeGetter, ndlinks []*format.Link, settings *options.UnixfsLsSettings, out chan<- coreiface.DirEntry) error {
 	for _, l := range ndlinks {
 		lr := ft.LinkResult{Link: &format.Link{Name: l.Name, Size: l.Size, Cid: l.Cid}}
 
-		links <- processLink(ctx, dag, lr, settings) //TODO: can be parallel if settings.Async
+		entry, err := processLink(ctx, dag, lr, settings)
+		if err != nil {
+			return err
+		}
+		select {
+		case out <- entry: // TODO: can be parallel if settings.Async
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
-	close(links)
-	return links, nil
+	return nil
 }

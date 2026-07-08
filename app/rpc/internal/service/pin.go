@@ -5,9 +5,8 @@ import (
 	"encoding/json"
 	"github.com/4everland/ipfs-top/third_party/coreunix"
 	httpctx "github.com/go-kratos/kratos/v2/transport/http"
-	iface "github.com/ipfs/boxo/coreiface"
-	"github.com/ipfs/boxo/coreiface/options"
-	"github.com/ipfs/boxo/coreiface/path"
+	iface "github.com/ipfs/kubo/core/coreiface"
+	"github.com/ipfs/kubo/core/coreiface/options"
 	"net/http"
 )
 
@@ -64,7 +63,12 @@ type PinAddResponse struct {
 func (s *PinService) addMany(ctx context.Context, paths []string, recursive bool) ([]string, error) {
 	added := make([]string, len(paths))
 	for i, b := range paths {
-		rp, err := s.resolver.ResolvePath(ctx, path.New(b))
+		p, err := coreunix.NewPath(b)
+		if err != nil {
+			return nil, err
+		}
+
+		rp, err := s.resolver.ResolvePath(ctx, p)
 		if err != nil {
 			return nil, err
 		}

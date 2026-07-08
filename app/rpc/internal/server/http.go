@@ -30,7 +30,7 @@ func NewApiHttpServer(
 			logging.Server(logger),
 			tracing.Server(),
 			metadata.Server(metadata.WithConstants(md.Metadata{
-				enum.MetadataServerKind: enum.ServerKindHTTP,
+				enum.MetadataServerKind: []string{enum.ServerKindHTTP},
 			})),
 		),
 		http.ErrorEncoder(errorEncoder),

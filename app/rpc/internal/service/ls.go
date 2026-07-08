@@ -3,13 +3,12 @@ package service
 import (
 	"github.com/4everland/ipfs-top/third_party/coreunix"
 	httpctx "github.com/go-kratos/kratos/v2/transport/http"
-	iface "github.com/ipfs/boxo/coreiface"
-	"github.com/ipfs/boxo/coreiface/options"
-	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/ipld/unixfs"
 	unixfs_pb "github.com/ipfs/boxo/ipld/unixfs/pb"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	http2 "github.com/ipfs/go-ipfs-cmds/http"
+	iface "github.com/ipfs/kubo/core/coreiface"
+	"github.com/ipfs/kubo/core/coreiface/options"
 	"sort"
 )
 
@@ -118,17 +117,20 @@ func (s *LsService) Ls(ctx httpctx.Context) (err error) {
 	}
 
 	for i, fpath := range req.Arg {
-		results, err := s.unixfs.Ls(ctx, path.New(fpath),
-			options.Unixfs.ResolveChildren(req.Size || req.ResolveType))
+		p, err := coreunix.NewPath(fpath)
 		if err != nil {
 			return err
 		}
 
+		results := make(chan iface.DirEntry)
+		lsErr := make(chan error, 1)
+		go func() {
+			lsErr <- s.unixfs.Ls(ctx, p, results,
+				options.Unixfs.ResolveChildren(req.Size || req.ResolveType))
+		}()
+
 		processLink, dirDone = processDir()
 		for link := range results {
-			if link.Err != nil {
-				return link.Err
-			}
 			var ftype unixfs_pb.Data_DataType
 			switch link.Type {
 			case iface.TFile:
@@ -149,6 +151,9 @@ func (s *LsService) Ls(ctx httpctx.Context) (err error) {
 			if err := processLink(req.Arg[i], lsLink); err != nil {
 				return err
 			}
+		}
+		if err := <-lsErr; err != nil {
+			return err
 		}
 		dirDone(i)
 	}

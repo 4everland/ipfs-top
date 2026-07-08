@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/4everland/ipfs-top/third_party/coreunix"
 	httpctx "github.com/go-kratos/kratos/v2/transport/http"
-	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/files"
 	"github.com/ipfs/boxo/ipld/merkledag"
 	blocks "github.com/ipfs/go-block-format"
@@ -124,8 +123,8 @@ func (s *DagService) DagImport(ctx httpctx.Context) (err error) {
 					break
 				}
 
-				if !req.AllowBigBlock && len(block.RawData()) > 1024*1024 {
-					return fmt.Errorf("produced block is over 1MiB: big blocks can't be exchanged with other peers. consider using UnixFS for automatic chunking of bigger files, or pass --allow-big-block to override")
+				if !req.AllowBigBlock && len(block.RawData()) > defaultMaxBlockSize {
+					return fmt.Errorf("produced block is over %s: big blocks can't be exchanged with other peers. consider using UnixFS for automatic chunking of bigger files, or pass --allow-big-block to override", defaultMaxBlockSizeLabel)
 				}
 
 				nd, err := s.decoder.DecodeNode(ctx, block)
@@ -225,7 +224,12 @@ func (s *DagService) DagGet(ctx httpctx.Context) (err error) {
 		return err
 	}
 
-	rp, err := s.dagResolver.ResolvePath(ctx, path.New(req.Arg))
+	p, err := coreunix.NewPath(req.Arg)
+	if err != nil {
+		return err
+	}
+
+	rp, err := s.dagResolver.ResolvePath(ctx, p)
 	if err != nil {
 		return err
 	}
@@ -382,8 +386,8 @@ func (s *DagService) DagPut(ctx httpctx.Context) (err error) {
 			Node:  n,
 		}
 
-		if !req.AllowBigBlock && len(blk.RawData()) > 1024*1024 {
-			return fmt.Errorf("produced block is over 1MiB: big blocks can't be exchanged with other peers. consider using UnixFS for automatic chunking of bigger files, or pass --allow-big-block to override")
+		if !req.AllowBigBlock && len(blk.RawData()) > defaultMaxBlockSize {
+			return fmt.Errorf("produced block is over %s: big blocks can't be exchanged with other peers. consider using UnixFS for automatic chunking of bigger files, or pass --allow-big-block to override", defaultMaxBlockSizeLabel)
 		}
 
 		if err := b.Add(ctx, &ln); err != nil {

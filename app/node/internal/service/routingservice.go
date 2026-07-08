@@ -39,12 +39,12 @@ func NewRoutingService(bitSwapService *BitSwapService, fn func(rt routing.Conten
 	return routingService
 }
 
-func (s *RoutingService) Provide(_ context.Context, req *pb.ProvideReq) (*emptypb.Empty, error) {
+func (s *RoutingService) Provide(ctx context.Context, req *pb.ProvideReq) (*emptypb.Empty, error) {
 	c, err := cid.Cast(req.Cid.Str)
 	if err != nil {
 		return nil, err
 	}
-	return &emptypb.Empty{}, s.ps.Provide(c)
+	return &emptypb.Empty{}, s.ps.Provide(ctx, c, true)
 }
 
 func (s *RoutingService) FindProvidersAsync(req *pb.GetProvidersReq, conn pb.Routing_FindProvidersAsyncServer) error {

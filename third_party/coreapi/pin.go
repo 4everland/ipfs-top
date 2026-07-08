@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	pb "github.com/4everland/ipfs-top/api/pin"
-	coreiface "github.com/ipfs/boxo/coreiface"
-	caopts "github.com/ipfs/boxo/coreiface/options"
-	"github.com/ipfs/boxo/coreiface/path"
+	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/go-cid"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
+	caopts "github.com/ipfs/kubo/core/coreiface/options"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -91,63 +92,59 @@ func (gp *grpcPin) Update(ctx context.Context, from path.Path, to path.Path, opt
 
 type pinInfo struct {
 	pinType string
-	path    path.Resolved
+	path    path.ImmutablePath
 	err     error
 }
 
-func (p *pinInfo) Path() path.Resolved {
+func (p *pinInfo) Path() path.ImmutablePath {
 	return p.path
+}
+
+func (p *pinInfo) Name() string {
+	return ""
 }
 
 func (p *pinInfo) Type() string {
 	return p.pinType
 }
 
-func (p *pinInfo) Err() error {
-	return p.err
-}
-
-func (gp *grpcPin) Ls(ctx context.Context, opts ...caopts.PinLsOption) (<-chan coreiface.Pin, error) {
+func (gp *grpcPin) Ls(ctx context.Context, out chan<- coreiface.Pin, opts ...caopts.PinLsOption) error {
 	settings, err := caopts.PinLsOptions(opts...)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	switch settings.Type {
 	case "all", "direct", "indirect", "recursive":
 	default:
-		return nil, fmt.Errorf("invalid type '%s', must be one of {direct, indirect, recursive, all}", settings.Type)
+		return fmt.Errorf("invalid type '%s', must be one of {direct, indirect, recursive, all}", settings.Type)
 	}
 
 	cc, err := gp.client.Ls(ctx, &pb.LsReq{Type: settings.Type})
-	ch := make(chan coreiface.Pin)
-	go func() {
-		defer cc.CloseSend()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				recv, er := cc.Recv()
-				if er != nil {
-					return
-				}
-				if recv.Err != "" {
-					ch <- &pinInfo{
-						err: errors.New(recv.Err),
-					}
-				} else {
-					ch <- &pinInfo{
-						pinType: recv.PinType,
-						path:    path.IpldPath(cid.MustParse(recv.Cid)),
-					}
-				}
+	if err != nil {
+		return err
+	}
+	defer cc.CloseSend()
+	defer close(out)
 
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			recv, er := cc.Recv()
+			if er != nil {
+				return nil
+			}
+			if recv.Err != "" {
+				return errors.New(recv.Err)
+			}
+			out <- &pinInfo{
+				pinType: recv.PinType,
+				path:    path.FromCid(cid.MustParse(recv.Cid)),
 			}
 		}
-	}()
-
-	return ch, nil
+	}
 }
 
 func (gp *grpcPin) Verify(ctx context.Context) (<-chan coreiface.PinStatus, error) {

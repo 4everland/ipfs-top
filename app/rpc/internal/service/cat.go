@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"github.com/4everland/ipfs-top/third_party/coreunix"
 	httpctx "github.com/go-kratos/kratos/v2/transport/http"
-	iface "github.com/ipfs/boxo/coreiface"
-	"github.com/ipfs/boxo/coreiface/path"
 	"github.com/ipfs/boxo/files"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	http2 "github.com/ipfs/go-ipfs-cmds/http"
+	iface "github.com/ipfs/kubo/core/coreiface"
 	"io"
 )
 
@@ -75,7 +74,12 @@ func cat(ctx context.Context, api iface.UnixfsAPI, paths []string, offset int64,
 		return nil, 0, nil
 	}
 	for _, p := range paths {
-		f, err := api.Get(ctx, path.New(p))
+		resolvedPath, err := coreunix.NewPath(p)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		f, err := api.Get(ctx, resolvedPath)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -100,7 +104,12 @@ func cat(ctx context.Context, api iface.UnixfsAPI, paths []string, offset int64,
 			continue
 		}
 
-		count, err := file.Seek(offset, io.SeekStart)
+		seeker, ok := file.(io.Seeker)
+		if !ok {
+			return nil, 0, iface.ErrNotSupported
+		}
+
+		count, err := seeker.Seek(offset, io.SeekStart)
 		if err != nil {
 			return nil, 0, err
 		}

@@ -10,12 +10,12 @@ import (
 	"github.com/google/wire"
 	"github.com/ipfs/boxo/blockservice"
 	blockstore "github.com/ipfs/boxo/blockstore"
-	iface "github.com/ipfs/boxo/coreiface"
 	exchange "github.com/ipfs/boxo/exchange"
 	offline "github.com/ipfs/boxo/exchange/offline"
 	"github.com/ipfs/boxo/ipld/merkledag"
 	"github.com/ipfs/go-cid"
 	format "github.com/ipfs/go-ipld-format"
+	iface "github.com/ipfs/kubo/core/coreiface"
 	"runtime"
 	"time"
 )

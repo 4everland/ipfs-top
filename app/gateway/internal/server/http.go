@@ -18,7 +18,7 @@ func NewGatewayServer(c *conf.Server, gw *gateway.BlocksBackend, logger log.Logg
 			recovery.Recovery(),
 			logging.Server(logger),
 			metadata.Server(metadata.WithConstants(md.Metadata{
-				enum.MetadataServerKind: enum.ServerKindHTTP,
+				enum.MetadataServerKind: []string{enum.ServerKindHTTP},
 			})),
 		),
 		//http.RequestDecoder(middleware.TransformAdderRequest),
@@ -33,10 +33,8 @@ func NewGatewayServer(c *conf.Server, gw *gateway.BlocksBackend, logger log.Logg
 	}
 	srv := http.NewServer(opts...)
 	headers := map[string][]string{}
-	gateway.AddAccessControlHeaders(headers)
 
 	gwConf := gateway.Config{
-		Headers:               headers,
 		DeserializedResponses: true,
 		PublicGateways: map[string]*gateway.PublicGateway{
 			// Support public requests with Host: CID.ipfs.example.net and ID.ipns.example.net
@@ -56,7 +54,7 @@ func NewGatewayServer(c *conf.Server, gw *gateway.BlocksBackend, logger log.Logg
 	}
 
 	gwHandler := gateway.NewHandler(gwConf, gw)
-	handler := gateway.NewHostnameHandler(gwConf, gw, gwHandler)
+	handler := gateway.NewHeaders(headers).ApplyCors().Wrap(gateway.NewHostnameHandler(gwConf, gw, gwHandler))
 	srv.HandlePrefix("/ipfs/", handler)
 	srv.HandlePrefix("/", handler)
 	//srv.HandlePrefix("/ipns/", gwHandler)

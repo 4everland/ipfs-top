@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"github.com/4everland/ipfs-top/third_party/coreunix"
 	httpctx "github.com/go-kratos/kratos/v2/transport/http"
-	coreiface "github.com/ipfs/boxo/coreiface"
-	"github.com/ipfs/boxo/coreiface/options"
 	"github.com/ipfs/boxo/files"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	http2 "github.com/ipfs/go-ipfs-cmds/http"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
+	"github.com/ipfs/kubo/core/coreiface/options"
 	"mime"
 	"mime/multipart"
 	"path"
@@ -102,7 +102,7 @@ func (a *AdderService) Add(ctx httpctx.Context) (err error) {
 	opts := []options.UnixfsAddOption{
 		options.Unixfs.Chunker(addRequest.Chunker),
 
-		options.Unixfs.Pin(addRequest.Pin),
+		options.Unixfs.Pin(addRequest.Pin, ""),
 		options.Unixfs.HashOnly(addRequest.OnlyHash),
 
 		options.Unixfs.Progress(addRequest.Progress),
@@ -157,9 +157,9 @@ func (a *AdderService) Add(ctx httpctx.Context) (err error) {
 			}
 
 			h := ""
-			if output.Path != nil {
-				h = output.Path.Cid().String()
-				//h = enc.Encode(output.Path.Cid())
+			if output.Path.RootCid().Defined() {
+				h = output.Path.RootCid().String()
+				// h = enc.Encode(output.Path.RootCid())
 			}
 
 			if !dir && addit.Name() != "" {
